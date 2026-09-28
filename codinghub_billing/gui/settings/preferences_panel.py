@@ -29,14 +29,14 @@ class PreferencesPanel(ctk.CTkFrame):
         ).grid(row=0, column=0, columnspan=2, sticky="w",
                padx=theme.spacing.md, pady=(theme.spacing.md, theme.spacing.xs))
         ctk.CTkLabel(
-            card, text="Default GST naye course me auto-fill hoga. Appearance turant lagu hota hai.",
+            card, text="Tax 0% fixed hai. Appearance turant lagu hota hai.",
             font=theme.fonts.small, text_color=theme.colors.text_secondary, anchor="w",
         ).grid(row=1, column=0, columnspan=2, sticky="w",
                padx=theme.spacing.md, pady=(0, theme.spacing.sm))
 
-        tax_values = [str(r) for r in config.DEFAULT_TAX_RATES]
+        tax_values = ["0"]
         self.default_tax = FormField(
-            card, "Default GST %", widget_factory=dropdown_factory(tax_values))
+            card, "Default GST % (Fixed 0)", widget_factory=dropdown_factory(tax_values))
         self.default_tax.grid(row=2, column=0, sticky="ew",
                               padx=(theme.spacing.md, theme.spacing.sm),
                               pady=(0, theme.spacing.sm))
@@ -52,11 +52,15 @@ class PreferencesPanel(ctk.CTkFrame):
         PrimaryButton(btn_row, text="Save Preferences", command=self._save).pack(side="right")
 
         self._load()
+        try:
+            self.default_tax.input.configure(state="disabled")
+        except Exception:
+            pass
 
     def _load(self) -> None:
         prefs = settings_controller.get_preferences()
         try:
-            self.default_tax.set(str(prefs.get("default_tax_rate") or config.DEFAULT_TAX_RATE))
+            self.default_tax.set("0")
         except Exception:
             pass
         try:
@@ -67,7 +71,7 @@ class PreferencesPanel(ctk.CTkFrame):
     def _save(self) -> None:
         self.default_tax.clear_error()
         data = {
-            "default_tax_rate": self.default_tax.get().strip(),
+            "default_tax_rate": "0",
             "appearance_mode": self.appearance.get().strip(),
         }
         success, message, _saved = settings_controller.save_preferences(data)

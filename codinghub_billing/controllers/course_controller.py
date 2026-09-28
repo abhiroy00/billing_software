@@ -125,7 +125,7 @@ def export_courses_to_excel(path: str, query: str = "", status: str | None = Non
 
 
 COURSE_TEMPLATE_HEADERS = ["Name*", "Price (₹)*", "Category", "Duration", "GST %", "Discount (₹)", "Status", "Description"]
-_COURSE_TEMPLATE_SAMPLE = ["Python Full Stack", "25000", "Programming", "3 months", "18", "0", "Active", "Demo row — delete before import"]
+_COURSE_TEMPLATE_SAMPLE = ["Python Full Stack", "25000", "Programming", "3 months", "0", "0", "Active", "Demo row — delete before import"]
 
 
 def course_template_file(path: str) -> tuple[bool, str]:
@@ -157,7 +157,7 @@ def import_courses(path: str) -> tuple[int, list[str]]:
             "category": get("category"),
             "description": get("description"),
             "price": get("price (₹)*", "price (₹)", "price"),
-            "gst_percentage": get("gst %", "gst", "gst percentage") or "18",
+            "gst_percentage": "0",
             "discount": get("discount (₹)", "discount") or "0",
             "duration": get("duration"),
             "status": get("status") or "Active",

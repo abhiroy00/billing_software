@@ -56,6 +56,7 @@ class ExpenseFormModal(Modal):
         self.attachment_status.pack(side="left", padx=(0, theme.spacing.sm))
         SecondaryButton(attach_row, text="Attach File", icon="\U0001F4CE", command=self._pick_attachment).pack(side="left")
         self.view_attachment_btn = SecondaryButton(attach_row, text="View", command=self._view_attachment)
+        self.remove_attachment_btn = SecondaryButton(attach_row, text="Remove", command=self._remove_attachment)
 
         if expense_id:
             self._load_existing(expense_id)
@@ -86,9 +87,15 @@ class ExpenseFormModal(Modal):
         if not success:
             show_toast(self.master, message, variant="error")
             return
+        # New expense + re-pick: delete the previous unsaved copy to avoid orphans.
+        # For existing expense the old file is deleted on Save (see update_expense).
+        if self._attachment_path and not self._expense_id:
+            expense_controller.remove_attachment(self._attachment_path)
         self._attachment_path = saved_path
         self.attachment_status.configure(text=Path(path).name, text_color=theme.colors.success)
         self.view_attachment_btn.pack(side="left", padx=(theme.spacing.sm, 0))
+        self.remove_attachment_btn.pack(side="left", padx=(theme.spacing.sm, 0))
+        show_toast(self.master, "File saved in app storage.", variant="success")
 
     def _view_attachment(self) -> None:
         if not self._attachment_path:
@@ -96,6 +103,23 @@ class ExpenseFormModal(Modal):
         success, message = expense_controller.open_attachment(self._attachment_path)
         if not success:
             show_toast(self.master, message, variant="error")
+
+    def _remove_attachment(self) -> None:
+        """Delete the saved file from app storage and unlink it."""
+        if not self._attachment_path:
+            return
+        if not self._expense_id:
+            # New (unsaved) expense: delete the temp copy right away.
+            expense_controller.remove_attachment(self._attachment_path)
+            show_toast(self.master, "Attachment removed.", variant="success")
+        else:
+            # Existing expense: sirf unlink karo, physical file Save par
+            # update_expense se delete hogi (Cancel karne par file safe rahegi).
+            show_toast(self.master, "Attachment hataya — Save karte hi file delete hogi.", variant="success")
+        self._attachment_path = None
+        self.attachment_status.configure(text="No attachment", text_color=theme.colors.text_secondary)
+        self.view_attachment_btn.pack_forget()
+        self.remove_attachment_btn.pack_forget()
 
     def _load_existing(self, expense_id: int) -> None:
         expense = expense_controller.get_expense(expense_id)
@@ -112,6 +136,7 @@ class ExpenseFormModal(Modal):
             self._attachment_path = expense["attachment_path"]
             self.attachment_status.configure(text=Path(expense["attachment_path"]).name, text_color=theme.colors.success)
             self.view_attachment_btn.pack(side="left", padx=(theme.spacing.sm, 0))
+            self.remove_attachment_btn.pack(side="left", padx=(theme.spacing.sm, 0))
 
     def _save(self) -> None:
         self.amount.clear_error()

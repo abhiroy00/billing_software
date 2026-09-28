@@ -20,8 +20,9 @@ class AppConfig:
     CURRENCY_CODE: str = "INR"
     TIMEZONE: str = "Asia/Kolkata"
     DATE_FORMAT: str = "%d-%m-%Y"
-    DEFAULT_TAX_RATES: tuple = (0, 5, 12, 18, 28)
-    DEFAULT_TAX_RATE: int = 18
+    DEFAULT_TAX_RATES: tuple = (0,)
+    DEFAULT_TAX_RATE: int = 0
+    FIXED_TAX_RATE: int = 0
     INVOICE_NUMBER_PREFIX: str = "CH"
 
     root_dir: Path = field(default_factory=lambda: ensure_app_dirs()["root"])
@@ -39,6 +40,10 @@ class AppConfig:
     @property
     def attachments_dir(self) -> Path:
         return self.data_dir / "attachments"
+
+    @property
+    def imports_dir(self) -> Path:
+        return self.data_dir / "imports"
 
     @property
     def database_url(self) -> str:

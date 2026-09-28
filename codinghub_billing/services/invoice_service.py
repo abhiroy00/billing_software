@@ -93,12 +93,14 @@ def build_invoice_preview(session: Session, customer_id: int, items: list[dict])
             rate=Decimal(str(item["rate"])),
             quantity=Decimal(str(item["quantity"])),
             discount=Decimal(str(item.get("discount", 0))),
-            tax_percentage=Decimal(str(item.get("tax_percentage", 0))),
+            # Tax fixed at 0% — item se aaya tax ignore karo.
+            tax_percentage=Decimal("0"),
             tax_type=tax_type,
         )
         computed_items.append(
             {
                 **item,
+                "tax_percentage": Decimal("0"),
                 "taxable_amount": calc.taxable_amount,
                 "cgst_amount": calc.cgst_amount,
                 "sgst_amount": calc.sgst_amount,

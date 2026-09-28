@@ -21,7 +21,7 @@ def _seed_customer(session, name="Ravi Kumar", state="Karnataka", **overrides):
     return customer_service.create_customer(session, None, data)
 
 
-def _seed_course(session, name="Python Bootcamp", price="10000", gst="18", discount="0"):
+def _seed_course(session, name="Python Bootcamp", price="10000", gst="0", discount="0"):
     return course_service.create_course(
         session, None,
         {"name": name, "category": "Programming", "description": "", "price": price,
@@ -39,7 +39,7 @@ def test_peek_and_generate_invoice_number_increment(db_session):
     customer = _seed_customer(db_session)
     invoice_service.create_invoice(
         db_session, None, customer["id"],
-        items=[{"item_name": "Python Bootcamp", "quantity": 1, "rate": "10000", "discount": "1000", "tax_percentage": "18"}],
+        items=[{"item_name": "Python Bootcamp", "quantity": 1, "rate": "10000", "discount": "1000", "tax_percentage": "0"}],
         invoice_date=date(2026, 1, 1),
     )
 
@@ -53,7 +53,7 @@ def test_create_invoice_matches_section_40_example(db_session):
 
     detail = invoice_service.create_invoice(
         db_session, None, customer["id"],
-        items=[{"item_name": "Python Bootcamp", "quantity": 1, "rate": "10000", "discount": "1000", "tax_percentage": "18"}],
+        items=[{"item_name": "Python Bootcamp", "quantity": 1, "rate": "10000", "discount": "1000", "tax_percentage": "0"}],
         invoice_date=date.today(),
         initial_payment={"amount": "5000", "payment_mode": "Cash", "payment_date": date.today()},
     )
@@ -61,11 +61,11 @@ def test_create_invoice_matches_section_40_example(db_session):
     invoice = detail["invoice"]
     assert invoice["subtotal"] == Decimal("10000.00")
     assert invoice["discount_total"] == Decimal("1000.00")
-    assert invoice["cgst_total"] == Decimal("810.00")
-    assert invoice["sgst_total"] == Decimal("810.00")
-    assert invoice["grand_total"] == Decimal("10620.00")
+    assert invoice["cgst_total"] == Decimal("0.00")
+    assert invoice["sgst_total"] == Decimal("0.00")
+    assert invoice["grand_total"] == Decimal("9000.00")
     assert invoice["paid_amount"] == Decimal("5000.00")
-    assert invoice["due_amount"] == Decimal("5620.00")
+    assert invoice["due_amount"] == Decimal("4000.00")
     assert invoice["status"] == "PARTIAL"
     assert len(detail["payments"]) == 1
 
@@ -76,14 +76,30 @@ def test_create_invoice_inter_state_uses_igst(db_session):
 
     detail = invoice_service.create_invoice(
         db_session, None, customer["id"],
+        items=[{"item_name": "Python Bootcamp", "quantity": 1, "rate": "1000", "discount": "0", "tax_percentage": "0"}],
+        invoice_date=date.today(),
+    )
+    invoice = detail["invoice"]
+    assert invoice["cgst_total"] == Decimal("0.00")
+    assert invoice["sgst_total"] == Decimal("0.00")
+    assert invoice["igst_total"] == Decimal("0.00")
+    assert invoice["status"] == "PENDING"
+
+
+def test_tax_is_fixed_at_zero_even_if_nonzero_passed(db_session):
+    _seed_business(db_session)
+    customer = _seed_customer(db_session)
+
+    detail = invoice_service.create_invoice(
+        db_session, None, customer["id"],
         items=[{"item_name": "Python Bootcamp", "quantity": 1, "rate": "1000", "discount": "0", "tax_percentage": "18"}],
         invoice_date=date.today(),
     )
     invoice = detail["invoice"]
     assert invoice["cgst_total"] == Decimal("0.00")
     assert invoice["sgst_total"] == Decimal("0.00")
-    assert invoice["igst_total"] == Decimal("180.00")
-    assert invoice["status"] == "PENDING"
+    assert invoice["igst_total"] == Decimal("0.00")
+    assert invoice["grand_total"] == Decimal("1000.00")
 
 
 def test_create_invoice_rejects_empty_items(db_session):

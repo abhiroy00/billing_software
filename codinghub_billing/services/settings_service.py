@@ -150,8 +150,9 @@ def validate_preferences_fields(data: dict) -> list[str]:
         rate = float(str(data["default_tax_rate"]))
     except (TypeError, ValueError):
         return ["Default GST % must be a number."]
-    if rate < 0 or rate > 28:
-        extra.append("Default GST % must be between 0 and 28.")
+    # Tax fixed at 0% — koi aur rate allow nahi hai.
+    if rate != 0:
+        extra.append("Tax is fixed at 0%. Default GST % must be 0.")
     mode = (data.get("appearance_mode") or "").strip()
     if mode and mode not in APPEARANCE_MODES:
         extra.append(f"Appearance mode must be one of: {', '.join(APPEARANCE_MODES)}.")
@@ -215,7 +216,7 @@ def update_invoice_settings(session: Session, actor_user_id: int | None, data: d
     return invoice_to_dict(settings)
 
 
-def get_preferences(session: Session, default_tax_rate: int = 18) -> dict:
+def get_preferences(session: Session, default_tax_rate: int = 0) -> dict:
     return {
         "default_tax_rate": get_app_setting(session, DEFAULT_TAX_RATE_KEY, str(default_tax_rate)),
         "appearance_mode": get_app_setting(session, APPEARANCE_MODE_KEY, "Light"),
@@ -227,7 +228,7 @@ def update_preferences(session: Session, actor_user_id: int | None, data: dict) 
     errors = validate_preferences_fields(data)
     if errors:
         raise SettingsError(" ".join(errors))
-    rate = str(int(float(str(data["default_tax_rate"]))))
+    rate = "0"
     mode = (data.get("appearance_mode") or "Light").strip() or "Light"
     set_app_setting(session, DEFAULT_TAX_RATE_KEY, rate)
     set_app_setting(session, APPEARANCE_MODE_KEY, mode)

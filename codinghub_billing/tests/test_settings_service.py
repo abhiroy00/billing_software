@@ -96,23 +96,27 @@ def test_update_invoice_validation_errors(db_session, overrides, expected_snippe
 
 
 def test_preferences_roundtrip_and_validation(db_session):
-    prefs = settings_service.get_preferences(db_session, default_tax_rate=18)
-    assert prefs["default_tax_rate"] == "18"
+    prefs = settings_service.get_preferences(db_session, default_tax_rate=0)
+    assert prefs["default_tax_rate"] == "0"
     assert prefs["appearance_mode"] == "Light"
 
     saved = settings_service.update_preferences(
-        db_session, None, {"default_tax_rate": "12", "appearance_mode": "Dark"}
+        db_session, None, {"default_tax_rate": "0", "appearance_mode": "Dark"}
     )
-    assert saved["default_tax_rate"] == "12"
+    assert saved["default_tax_rate"] == "0"
     assert saved["appearance_mode"] == "Dark"
 
     with pytest.raises(settings_service.SettingsError, match="GST"):
         settings_service.update_preferences(
             db_session, None, {"default_tax_rate": "99", "appearance_mode": "Dark"}
         )
+    with pytest.raises(settings_service.SettingsError, match="GST"):
+        settings_service.update_preferences(
+            db_session, None, {"default_tax_rate": "12", "appearance_mode": "Dark"}
+        )
     with pytest.raises(settings_service.SettingsError, match="Appearance"):
         settings_service.update_preferences(
-            db_session, None, {"default_tax_rate": "12", "appearance_mode": "Neon"}
+            db_session, None, {"default_tax_rate": "0", "appearance_mode": "Neon"}
         )
 
 

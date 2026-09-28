@@ -7,7 +7,7 @@ from tests.test_invoice_service import _seed_business, _seed_customer
 TODAY = date.today()
 
 
-def _create_invoice(session, customer_id, rate, discount="0", tax="18", payment=None, invoice_date=None):
+def _create_invoice(session, customer_id, rate, discount="0", tax="0", payment=None, invoice_date=None):
     return invoice_service.create_invoice(
         session, None, customer_id,
         items=[{"item_name": "Python Bootcamp", "quantity": 1, "rate": rate, "discount": discount, "tax_percentage": tax}],
@@ -30,10 +30,10 @@ def test_sales_report_summary_excludes_cancelled(db_session):
 
     assert len(result.rows) == 2
     assert result.summary["total_invoices"] == 1
-    assert result.summary["total_sales"] == Decimal("10620.00")
+    assert result.summary["total_sales"] == Decimal("9000.00")
     assert result.summary["total_collected"] == Decimal("5000.00")
-    assert result.summary["total_due"] == Decimal("5620.00")
-    assert result.summary["average_invoice_value"] == Decimal("10620.00")
+    assert result.summary["total_due"] == Decimal("4000.00")
+    assert result.summary["average_invoice_value"] == Decimal("9000.00")
 
 
 def test_sales_report_filters_by_customer_and_status(db_session):
@@ -97,26 +97,26 @@ def test_pending_payments_report_only_shows_dues(db_session):
 def test_gst_report_matches_section_40_example(db_session):
     _seed_business(db_session, state="Karnataka")
     asha = _seed_customer(db_session, name="Asha Verma", mobile="9998887771", state="Karnataka")
-    _create_invoice(db_session, asha["id"], "10000", discount="1000", tax="18")
+    _create_invoice(db_session, asha["id"], "10000", discount="1000", tax="0")
 
     result = report_service.gst_report(db_session, TODAY, TODAY)
     assert result.summary["taxable_total"] == Decimal("9000.00")
-    assert result.summary["cgst_total"] == Decimal("810.00")
-    assert result.summary["sgst_total"] == Decimal("810.00")
+    assert result.summary["cgst_total"] == Decimal("0.00")
+    assert result.summary["sgst_total"] == Decimal("0.00")
     assert result.summary["igst_total"] == Decimal("0.00")
-    assert result.summary["total_tax"] == Decimal("1620.00")
-    assert result.summary["grand_total"] == Decimal("10620.00")
+    assert result.summary["total_tax"] == Decimal("0.00")
+    assert result.summary["grand_total"] == Decimal("9000.00")
 
 
 def test_gst_report_inter_state_uses_igst(db_session):
     _seed_business(db_session, state="Karnataka")
     bala = _seed_customer(db_session, name="Bala Reddy", mobile="9998887772", state="Maharashtra")
-    _create_invoice(db_session, bala["id"], "1000", tax="18")
+    _create_invoice(db_session, bala["id"], "1000", tax="0")
 
     result = report_service.gst_report(db_session, TODAY, TODAY)
     assert result.summary["cgst_total"] == Decimal("0.00")
     assert result.summary["sgst_total"] == Decimal("0.00")
-    assert result.summary["igst_total"] == Decimal("180.00")
+    assert result.summary["igst_total"] == Decimal("0.00")
 
 
 def test_expense_report_totals_and_category_breakdown(db_session):

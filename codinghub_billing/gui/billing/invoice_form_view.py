@@ -164,8 +164,12 @@ class InvoiceFormView(ctk.CTkFrame):
         self.discount_field.set("0")
         self.discount_field.grid(row=0, column=3, sticky="ew", padx=(0, theme.spacing.sm))
 
-        self.tax_field = FormField(add_row, "Tax %")
+        self.tax_field = FormField(add_row, "Tax % (Fixed 0)")
         self.tax_field.set("0")
+        try:
+            self.tax_field.input.configure(state="disabled")
+        except Exception:
+            pass
         self.tax_field.grid(row=0, column=4, sticky="ew")
 
         if self._course_by_name:
@@ -196,7 +200,7 @@ class InvoiceFormView(ctk.CTkFrame):
             return
         self.rate_field.set(str(course["price"]))
         self.discount_field.set(str(course["discount"]))
-        self.tax_field.set(str(course["gst_percentage"]))
+        self.tax_field.set("0")
 
     def _add_item(self) -> None:
         course_name = self.course_field.get()
@@ -222,7 +226,7 @@ class InvoiceFormView(ctk.CTkFrame):
                 "quantity": self.quantity_field.get().strip(),
                 "rate": self.rate_field.get().strip(),
                 "discount": self.discount_field.get().strip(),
-                "tax_percentage": self.tax_field.get().strip(),
+                "tax_percentage": "0",
             }
         )
         self.quantity_field.set("1")

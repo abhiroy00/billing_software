@@ -15,7 +15,7 @@ def _valid_data(**overrides) -> dict:
         "category": "Programming",
         "description": "Learn Python from scratch.",
         "price": "10000",
-        "gst_percentage": "18",
+        "gst_percentage": "0",
         "discount": "1000",
         "duration": "3 months",
         "status": "Active",
@@ -29,7 +29,7 @@ def test_create_course_success_and_audit_log(db_session):
 
     assert course["name"] == "Python Bootcamp"
     assert course["price"] == Decimal("10000")
-    assert course["gst_percentage"] == Decimal("18")
+    assert course["gst_percentage"] == Decimal("0")
 
     logs = db_session.query(AuditLog).all()
     assert len(logs) == 1
@@ -43,7 +43,8 @@ def test_create_course_success_and_audit_log(db_session):
         ({"name": ""}, "Name"),
         ({"price": "abc"}, "Price"),
         ({"price": "-100"}, "Price"),
-        ({"gst_percentage": "150"}, "exceed 100"),
+        ({"gst_percentage": "18"}, "fixed at 0"),
+        ({"gst_percentage": "150"}, "fixed at 0"),
         ({"discount": "50000"}, "cannot be greater"),
     ],
 )

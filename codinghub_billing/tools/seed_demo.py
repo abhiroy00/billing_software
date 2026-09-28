@@ -82,7 +82,7 @@ def main() -> None:
         ]:
             courses.append(course_service.create_course(session, uid, {
                 "name": name, "category": category, "description": f"{name} complete course",
-                "price": price, "gst_percentage": "18", "discount": "0",
+                "price": price, "gst_percentage": "0", "discount": "0",
                 "duration": "3 months", "status": "Active",
             }))
         print(f"Courses: {len(courses)}")
@@ -118,7 +118,7 @@ def main() -> None:
             invoice_service.create_invoice(
                 session, uid, customers[cust_idx]["id"],
                 items=[{"item_name": course["name"], "quantity": 1, "rate": course["price"],
-                        "discount": "0", "tax_percentage": "18"}],
+                        "discount": "0", "tax_percentage": "0"}],
                 invoice_date=inv_date, notes="Demo invoice", initial_payment=initial,
             )
         print(f"Invoices: {len(plan)} (Paid / Partial / Pending mix)")

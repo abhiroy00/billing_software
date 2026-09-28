@@ -42,9 +42,10 @@ def validate_course_fields(data: dict) -> list[str]:
         validators.valid_numeric(data.get("gst_percentage"), "GST percentage"),
         validators.valid_numeric(data.get("discount"), "Discount", allow_negative=False),
     )
+    # Tax fixed at 0% — koi aur GST allow nahi hai.
     try:
-        if float(data.get("gst_percentage") or 0) > 100:
-            errors.append("GST percentage cannot exceed 100.")
+        if float(data.get("gst_percentage") or 0) != 0:
+            errors.append("Tax is fixed at 0%. GST percentage must be 0.")
     except (TypeError, ValueError):
         pass
     try:
@@ -82,7 +83,7 @@ def create_course(session: Session, user_id: int | None, data: dict) -> dict:
         category=(data.get("category") or "").strip(),
         description=(data.get("description") or "").strip(),
         price=Decimal(str(data.get("price") or 0)),
-        gst_percentage=Decimal(str(data.get("gst_percentage") or 0)),
+        gst_percentage=Decimal("0"),
         discount=Decimal(str(data.get("discount") or 0)),
         duration=(data.get("duration") or "").strip(),
         status=data.get("status", "Active"),
@@ -109,7 +110,7 @@ def update_course(session: Session, user_id: int | None, course_id: int, data: d
     course.category = (data.get("category") or "").strip()
     course.description = (data.get("description") or "").strip()
     course.price = Decimal(str(data.get("price") or 0))
-    course.gst_percentage = Decimal(str(data.get("gst_percentage") or 0))
+    course.gst_percentage = Decimal("0")
     course.discount = Decimal(str(data.get("discount") or 0))
     course.duration = (data.get("duration") or "").strip()
     course.status = data.get("status", course.status)

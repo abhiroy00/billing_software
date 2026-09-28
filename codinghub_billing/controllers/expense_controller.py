@@ -9,7 +9,7 @@ from pathlib import Path
 from config import config
 from database.connection import get_session
 from services import auth_service, expense_service
-from utils.file_utils import save_attachment
+from utils.file_utils import delete_file_safe, save_attachment
 from utils.logger import USER_FRIENDLY_MESSAGE
 
 logger = logging.getLogger("codinghub")
@@ -55,7 +55,13 @@ def create_expense(data: dict) -> tuple[bool, str, dict | None]:
 def update_expense(expense_id: int, data: dict) -> tuple[bool, str, dict | None]:
     try:
         with get_session() as session:
+            old = expense_service.get_expense_dict(session, expense_id)
+            old_path = (old or {}).get("attachment_path")
             expense = expense_service.update_expense(session, auth_service.current_session.user_id, expense_id, data)
+        # If the attachment was replaced/removed, delete the old file from disk.
+        new_path = (data.get("attachment_path") if "attachment_path" in data else old_path)
+        if old_path and old_path != new_path:
+            delete_file_safe(old_path)
         return True, "", expense
     except expense_service.ExpenseError as exc:
         return False, str(exc), None
@@ -67,7 +73,11 @@ def update_expense(expense_id: int, data: dict) -> tuple[bool, str, dict | None]
 def delete_expense(expense_id: int) -> tuple[bool, str]:
     try:
         with get_session() as session:
+            old = expense_service.get_expense_dict(session, expense_id)
+            old_path = (old or {}).get("attachment_path")
             expense_service.delete_expense(session, auth_service.current_session.user_id, expense_id)
+        if old_path:
+            delete_file_safe(old_path)
         return True, ""
     except expense_service.ExpenseError as exc:
         return False, str(exc)
@@ -150,11 +160,35 @@ def attach_file(source_path: str) -> tuple[bool, str, str | None]:
         return False, USER_FRIENDLY_MESSAGE, None
 
 
+def remove_attachment(path: str | None) -> tuple[bool, str]:
+    """Deletes the saved attachment file from disk.
+
+    Used by the expense form's Remove/Delete button — the caller must
+    also clear `attachment_path` on the expense (by saving with None).
+    """
+    try:
+        if not path:
+            return True, ""
+        delete_file_safe(path)
+        return True, ""
+    except Exception:
+        logger.exception("Failed to delete attachment")
+        return False, USER_FRIENDLY_MESSAGE
+
+
 def open_attachment(path: str) -> tuple[bool, str]:
     if not path or not Path(path).is_file():
         return False, "Attachment file not found."
     try:
-        os.startfile(path)  # noqa: S606 - opening a user-selected local file with its default app
+        import subprocess
+        import sys
+
+        if sys.platform == "win32":
+            os.startfile(path)  # noqa: S606 - opening a user-selected local file with its default app
+        elif sys.platform == "darwin":
+            subprocess.run(["open", str(path)], check=False)
+        else:
+            subprocess.run(["xdg-open", str(path)], check=False)
         return True, ""
     except Exception:
         logger.exception("Failed to open attachment")

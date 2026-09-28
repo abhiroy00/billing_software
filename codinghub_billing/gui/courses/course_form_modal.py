@@ -43,9 +43,9 @@ class CourseFormModal(Modal):
         self._section_label("💰 Pricing & Tax", 3)
         self.price = self._field("Price (₹)", 4, 0, required=True)
         self.gst_percentage = self._field(
-            "GST %", 4, 1,
+            "GST % (Fixed 0)", 4, 1,
             widget_factory=lambda m: ctk.CTkComboBox(
-                m, values=[str(r) for r in config.DEFAULT_TAX_RATES], font=theme.fonts.body, height=36,
+                m, values=["0"], font=theme.fonts.body, height=36,
                 corner_radius=theme.spacing.radius // 2, border_color=theme.colors.border,
                 button_color=theme.colors.primary, button_hover_color=theme.colors.primary_hover,
             ),
@@ -56,7 +56,11 @@ class CourseFormModal(Modal):
             "Description", 6, 0, colspan=2, widget_factory=lambda m: ctk.CTkTextbox(m, height=80, font=theme.fonts.body)
         )
 
-        self.gst_percentage.set(str(_default_tax_rate()))
+        self.gst_percentage.set("0")
+        try:
+            self.gst_percentage.input.configure(state="disabled")
+        except Exception:
+            pass
         self.discount.set("0")
 
         if course_id:
@@ -88,7 +92,7 @@ class CourseFormModal(Modal):
         self.category.set(course["category"])
         self.duration.set(course["duration"])
         self.price.set(str(course["price"]))
-        self.gst_percentage.set(str(course["gst_percentage"]))
+        self.gst_percentage.set("0")
         self.discount.set(str(course["discount"]))
         self.status.set(course["status"])
         self.description.set(course["description"])
@@ -99,7 +103,7 @@ class CourseFormModal(Modal):
             "category": self.category.get().strip(),
             "description": self.description.get().strip(),
             "price": self.price.get().strip(),
-            "gst_percentage": self.gst_percentage.get().strip(),
+            "gst_percentage": "0",
             "discount": self.discount.get().strip() or "0",
             "duration": self.duration.get().strip(),
             "status": self.status.get().strip(),

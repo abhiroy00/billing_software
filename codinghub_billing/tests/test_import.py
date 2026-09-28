@@ -79,7 +79,7 @@ def test_import_courses_and_template(db_session, tmp_path):
     path = _xlsx(
         tmp_path / "c.xlsx",
         ["Name", "Price (₹)", "GST %"],
-        [["Python", "25000", "18"], ["Bad", "not-a-price", "18"]],
+        [["Python", "25000", "0"], ["Bad", "not-a-price", "0"]],
     )
     imported, errors = course_controller.import_courses(path)
     assert imported == 1
