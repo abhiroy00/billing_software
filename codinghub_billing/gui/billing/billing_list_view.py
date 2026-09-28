@@ -9,6 +9,7 @@ import customtkinter as ctk
 from controllers import invoice_controller
 from gui.billing.invoice_detail_view import InvoiceDetailModal
 from gui.components.buttons import PrimaryButton
+from gui.components.cards import Card
 from gui.components.inputs import SearchBox
 from gui.components.table import DataTable
 from gui.components.toast import show_toast
@@ -18,6 +19,16 @@ from utils.formatters import format_currency, format_date
 STATUS_FILTERS = ["All", "PENDING", "PARTIAL", "PAID", "CANCELLED"]
 
 
+def _soft(color: str) -> str:
+    return {
+        theme.colors.success: theme.colors.success_soft,
+        theme.colors.danger: theme.colors.danger_soft,
+        theme.colors.primary: theme.colors.primary_soft,
+        theme.colors.info: theme.colors.info_soft,
+        theme.colors.warning: theme.colors.warning_soft,
+    }.get(color, theme.colors.primary_soft)
+
+
 class BillingListView(ctk.CTkFrame):
     def __init__(self, master, on_new_invoice: Callable[[], None]):
         super().__init__(master, fg_color="transparent")
@@ -25,9 +36,10 @@ class BillingListView(ctk.CTkFrame):
         self._query = ""
         self._status_filter = "All"
 
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
+        self._build_summary()
         self._build_toolbar()
 
         self.table = DataTable(
@@ -54,13 +66,58 @@ class BillingListView(ctk.CTkFrame):
             empty_action_label="Create Invoice",
             on_empty_action=self._on_new_invoice,
         )
-        self.table.grid(row=1, column=0, sticky="nsew", padx=theme.spacing.lg, pady=(0, theme.spacing.lg))
+        self.table.grid(row=2, column=0, sticky="nsew", padx=theme.spacing.lg, pady=(0, theme.spacing.lg))
 
         self._load()
 
+    def _build_summary(self) -> None:
+        strip = ctk.CTkFrame(self, fg_color="transparent")
+        strip.grid(row=0, column=0, sticky="ew", padx=theme.spacing.lg, pady=(theme.spacing.lg, 0))
+        strip.grid_columnconfigure((0, 1, 2), weight=1, uniform="bill")
+
+        self._sum_values: list = []
+        for i, (icon, label, accent) in enumerate(
+            [("🧾", "TOTAL INVOICES", theme.colors.primary),
+             ("💰", "TOTAL BILLED", theme.colors.success),
+             ("⏳", "TOTAL DUE", theme.colors.danger)]
+        ):
+            card = Card(strip)
+            card.grid(row=0, column=i, sticky="nsew", padx=(0, theme.spacing.sm) if i < 2 else (theme.spacing.sm, 0))
+            card.grid_columnconfigure(1, weight=1)
+            ctk.CTkLabel(
+                card, text=icon, font=("Segoe UI", 22), text_color=accent,
+                fg_color=_soft(accent), corner_radius=10, width=46, height=46,
+            ).grid(row=0, column=0, rowspan=2, padx=theme.spacing.sm, pady=theme.spacing.sm)
+            ctk.CTkLabel(
+                card, text=label, font=theme.fonts.kpi_label, text_color=theme.colors.text_secondary, anchor="w"
+            ).grid(row=0, column=1, sticky="w", padx=(0, theme.spacing.sm), pady=(theme.spacing.sm, 0))
+            value_label = ctk.CTkLabel(
+                card, text="—", font=("Segoe UI", 20, "bold"), text_color=theme.colors.text, anchor="w"
+            )
+            value_label.grid(row=1, column=1, sticky="w", padx=(0, theme.spacing.sm), pady=(0, theme.spacing.sm))
+            self._sum_values.append(value_label)
+
+    def _refresh_summary(self, rows: list[dict]) -> None:
+        from decimal import Decimal
+
+        billed = sum((r.get("grand_total") or Decimal("0")) for r in rows)
+        due = sum((r.get("due_amount") or Decimal("0")) for r in rows)
+        texts = [f"{len(rows):,}", format_currency(billed), format_currency(due)]
+        try:
+            from gui.components.animations import count_up
+
+            for label, text in zip(self._sum_values, texts):
+                count_up(label, text, duration_ms=500)
+        except Exception:
+            for label, text in zip(self._sum_values, texts):
+                try:
+                    label.configure(text=text)
+                except Exception:
+                    pass
+
     def _build_toolbar(self) -> None:
         bar = ctk.CTkFrame(self, fg_color="transparent")
-        bar.grid(row=0, column=0, sticky="ew", padx=theme.spacing.lg, pady=theme.spacing.lg)
+        bar.grid(row=1, column=0, sticky="ew", padx=theme.spacing.lg, pady=theme.spacing.md)
         bar.grid_columnconfigure(0, weight=1)
 
         self.search_box = SearchBox(bar, placeholder="Search by invoice no. or customer...", on_change=self._on_search)
@@ -98,12 +155,37 @@ class BillingListView(ctk.CTkFrame):
             for row in rows
         ]
         self.table.set_rows(display_rows)
+        self._refresh_summary(rows)
 
     def _open_detail(self, row: dict) -> None:
         InvoiceDetailModal(self, invoice_id=row["id"], on_changed=self._load)
 
     def _row_menu(self, row: dict) -> list[tuple[str, object]]:
-        return [("View Invoice", lambda: self._open_detail(row))]
+        return [
+            ("View Invoice", lambda: self._open_detail(row)),
+            ("Download Invoice PDF", lambda: self._download_invoice_pdf(row)),
+        ]
+
+    def _download_invoice_pdf(self, row: dict) -> None:
+        from tkinter import filedialog
+
+        from controllers import document_controller
+
+        path = filedialog.asksaveasfilename(
+            title="Save Invoice PDF",
+            initialfile=document_controller.default_invoice_path(row["invoice_number"]).name,
+            defaultextension=".pdf",
+            filetypes=[("PDF files", "*.pdf")],
+        )
+        if not path:
+            return
+        success, message, saved = document_controller.generate_invoice_pdf(row["id"], path)
+        root = self.winfo_toplevel()
+        if not success:
+            show_toast(root, message, variant="error")
+            return
+        show_toast(root, "Invoice PDF saved. Opening…", variant="success")
+        document_controller.open_file(saved)
 
     def refresh(self) -> None:
         self._load()

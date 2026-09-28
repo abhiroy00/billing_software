@@ -26,22 +26,24 @@ class CourseFormModal(Modal):
         self.scroll_body.grid_columnconfigure(0, weight=1)
         self.scroll_body.grid_columnconfigure(1, weight=1)
 
-        self.name = self._field("Course / Product Name", 0, 0, colspan=2, required=True)
-        self.category = self._field("Category", 1, 0)
-        self.duration = self._field("Duration (e.g. 3 months)", 1, 1)
-        self.price = self._field("Price (₹)", 2, 0, required=True)
+        self._section_label("📚 Course Details", 0)
+        self.name = self._field("Course / Product Name", 1, 0, colspan=2, required=True)
+        self.category = self._field("Category", 2, 0)
+        self.duration = self._field("Duration (e.g. 3 months)", 2, 1)
+        self._section_label("💰 Pricing & Tax", 3)
+        self.price = self._field("Price (₹)", 4, 0, required=True)
         self.gst_percentage = self._field(
-            "GST %", 2, 1,
+            "GST %", 4, 1,
             widget_factory=lambda m: ctk.CTkComboBox(
                 m, values=[str(r) for r in config.DEFAULT_TAX_RATES], font=theme.fonts.body, height=36,
                 corner_radius=theme.spacing.radius // 2, border_color=theme.colors.border,
                 button_color=theme.colors.primary, button_hover_color=theme.colors.primary_hover,
             ),
         )
-        self.discount = self._field("Discount (₹)", 3, 0)
-        self.status = self._field("Status", 3, 1, widget_factory=dropdown_factory(STATUS_OPTIONS))
+        self.discount = self._field("Discount (₹)", 5, 0)
+        self.status = self._field("Status", 5, 1, widget_factory=dropdown_factory(STATUS_OPTIONS))
         self.description = self._field(
-            "Description", 4, 0, colspan=2, widget_factory=lambda m: ctk.CTkTextbox(m, height=80, font=theme.fonts.body)
+            "Description", 6, 0, colspan=2, widget_factory=lambda m: ctk.CTkTextbox(m, height=80, font=theme.fonts.body)
         )
 
         self.gst_percentage.set(str(config.DEFAULT_TAX_RATE))
@@ -52,6 +54,12 @@ class CourseFormModal(Modal):
 
         SecondaryButton(self.actions, text="Cancel", command=self.destroy).pack(side="right", padx=(theme.spacing.sm, 0))
         PrimaryButton(self.actions, text="Save Course", command=self._save).pack(side="right")
+
+    def _section_label(self, text: str, row: int) -> None:
+        ctk.CTkLabel(
+            self.scroll_body, text=text, font=theme.fonts.card_title,
+            text_color=theme.colors.primary, anchor="w",
+        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=(theme.spacing.sm, theme.spacing.xs))
 
     def _field(self, label, row, col, required=False, colspan=1, widget_factory=None):
         field = FormField(self.scroll_body, label, required=required, widget_factory=widget_factory)

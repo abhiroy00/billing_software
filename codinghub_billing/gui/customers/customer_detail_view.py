@@ -16,6 +16,13 @@ from gui.theme import theme
 from utils.formatters import format_currency, format_date
 
 
+_AVATAR_PALETTE = ("#4F46E5", "#06B6D4", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6")
+
+
+def _avatar_color(name: str) -> str:
+    return _AVATAR_PALETTE[sum(ord(ch) for ch in name) % len(_AVATAR_PALETTE)]
+
+
 class CustomerDetailModal(Modal):
     def __init__(self, master, customer_id: int, on_changed: Callable[[], None] | None = None):
         super().__init__(master, title="Customer Details", width=760, height=680, resizable=True, scrollable=True)
@@ -38,46 +45,87 @@ class CustomerDetailModal(Modal):
         PrimaryButton(self.actions, text="Edit Customer", command=self._edit).pack(side="right")
 
     def _render(self, detail: dict) -> None:
+        from decimal import Decimal
+
         customer = detail["customer"]
+        outstanding = detail["outstanding"] or Decimal("0")
+        invoices = detail["invoices"]
+        payments = detail["payments"]
 
         header = Card(self.scroll_body)
         header.grid(row=0, column=0, sticky="ew", pady=(0, theme.spacing.md))
-        header.grid_columnconfigure(0, weight=1)
+        header.grid_columnconfigure(1, weight=1)
+
+        initials = "".join(part[:1] for part in (customer["name"] or "U").split()[:2]).upper()
+        avatar_color = _avatar_color(customer["name"] or "")
+        ctk.CTkLabel(
+            header, text=initials, font=("Segoe UI", 22, "bold"),
+            text_color=theme.colors.white, fg_color=avatar_color,
+            corner_radius=28, width=56, height=56,
+        ).grid(row=0, column=0, rowspan=2, padx=theme.spacing.md, pady=theme.spacing.md)
 
         title_row = ctk.CTkFrame(header, fg_color="transparent")
-        title_row.grid(row=0, column=0, sticky="ew", padx=theme.spacing.md, pady=(theme.spacing.md, theme.spacing.xs))
+        title_row.grid(row=0, column=1, sticky="ew", padx=(0, theme.spacing.md), pady=(theme.spacing.md, 0))
         ctk.CTkLabel(
-            title_row, text=customer["name"], font=theme.fonts.section_heading, text_color=theme.colors.text
+            title_row, text=customer["name"], font=("Segoe UI", 19, "bold"), text_color=theme.colors.text
         ).pack(side="left")
         StatusBadge(title_row, status=customer["status"]).pack(side="left", padx=(theme.spacing.sm, 0))
+        ctk.CTkLabel(
+            title_row, text=customer["customer_code"], font=theme.fonts.small_bold,
+            text_color=theme.colors.primary, fg_color=theme.colors.primary_soft,
+            corner_radius=8, padx=8, pady=2,
+        ).pack(side="left", padx=(theme.spacing.sm, 0))
 
-        meta_text = "  •  ".join(
-            filter(
-                None,
-                [
-                    customer["customer_code"],
-                    customer["mobile"],
-                    customer.get("email") or "",
-                    customer.get("course_name") or "",
-                ],
-            )
+        contact_bits = [
+            ("📱", customer["mobile"]),
+            ("✉️", customer.get("email") or ""),
+            ("📚", customer.get("course_name") or ""),
+            ("📍", "  ".join(filter(None, [customer.get("city") or "", customer.get("state") or ""]))),
+        ]
+        contact_row = ctk.CTkFrame(header, fg_color="transparent")
+        contact_row.grid(row=1, column=1, sticky="ew", padx=(0, theme.spacing.md), pady=(2, theme.spacing.sm))
+        shown = 0
+        for icon, value in contact_bits:
+            if not value:
+                continue
+            ctk.CTkLabel(
+                contact_row, text=f"{icon}  {value}", font=theme.fonts.small,
+                text_color=theme.colors.text_secondary,
+            ).pack(side="left", padx=(0, theme.spacing.md))
+            shown += 1
+        if shown == 0:
+            ctk.CTkLabel(
+                contact_row, text="No contact details added yet.",
+                font=theme.fonts.small, text_color=theme.colors.text_secondary,
+            ).pack(side="left")
+
+        banner_bg = theme.colors.danger_soft if outstanding > 0 else theme.colors.success_soft
+        banner_fg = theme.colors.danger if outstanding > 0 else theme.colors.success
+        banner_icon = "⏳" if outstanding > 0 else "✅"
+        banner_text = (
+            f"{banner_icon}  Outstanding Balance:  {format_currency(outstanding)}"
+            if outstanding > 0 else f"{banner_icon}  All clear — no outstanding balance"
         )
+        banner = ctk.CTkFrame(self.scroll_body, fg_color=banner_bg, corner_radius=theme.spacing.radius)
+        banner.grid(row=1, column=0, sticky="ew", pady=(0, theme.spacing.md))
+        banner.grid_columnconfigure((0, 1, 2), weight=1, uniform="mini")
+        paid_total = sum((p.get("amount") or Decimal("0")) for p in payments)
+        for i, (label, value) in enumerate(
+            [(f"🧾 INVOICES", str(len(invoices))),
+             (f"💰 PAID", format_currency(paid_total)),
+             (f"⏳ DUE", format_currency(outstanding))]
+        ):
+            cell = ctk.CTkFrame(banner, fg_color="transparent")
+            cell.grid(row=0, column=i, sticky="nsew", padx=theme.spacing.sm, pady=theme.spacing.sm)
+            ctk.CTkLabel(cell, text=label, font=theme.fonts.kpi_label, text_color=banner_fg).pack()
+            ctk.CTkLabel(cell, text=value, font=("Segoe UI", 17, "bold"), text_color=theme.colors.text).pack()
         ctk.CTkLabel(
-            header, text=meta_text, font=theme.fonts.body, text_color=theme.colors.text_secondary, anchor="w"
-        ).grid(row=1, column=0, sticky="w", padx=theme.spacing.md, pady=(0, theme.spacing.sm))
-
-        outstanding_color = theme.colors.danger if detail["outstanding"] > 0 else theme.colors.success
-        ctk.CTkLabel(
-            header,
-            text=f"Outstanding Balance:  {format_currency(detail['outstanding'])}",
-            font=theme.fonts.body_bold,
-            text_color=outstanding_color,
-            anchor="w",
-        ).grid(row=2, column=0, sticky="w", padx=theme.spacing.md, pady=(0, theme.spacing.md))
+            self.scroll_body, text=banner_text, font=theme.fonts.body_bold, text_color=banner_fg, anchor="w"
+        ).grid(row=2, column=0, sticky="w", pady=(0, theme.spacing.md))
 
         self._section(
-            row=1,
-            title="Invoices",
+            row=3,
+            title=f"🧾 Invoices  ({len(invoices)})",
             columns=[
                 ("invoice_number", "Invoice No", 110, "w"),
                 ("invoice_date", "Date", 90, "w"),
@@ -95,11 +143,12 @@ class CustomerDetailModal(Modal):
                 for inv in detail["invoices"]
             ],
             empty_message="No invoices yet.",
+            tag_fn=lambda r: str(r.get("status", "")).upper(),
         )
 
         self._section(
-            row=2,
-            title="Payments",
+            row=4,
+            title=f"💰 Payments  ({len(payments)})",
             columns=[
                 ("payment_date", "Date", 90, "w"),
                 ("amount", "Amount", 100, "e"),
@@ -113,8 +162,8 @@ class CustomerDetailModal(Modal):
         )
 
         self._section(
-            row=3,
-            title="Activity",
+            row=5,
+            title=f"📜 Activity  ({len(detail['activity'])})",
             columns=[
                 ("timestamp", "When", 140, "w"),
                 ("action", "Action", 90, "w"),
@@ -127,14 +176,21 @@ class CustomerDetailModal(Modal):
             empty_message="No recent activity.",
         )
 
-    def _section(self, row: int, title: str, columns, rows, empty_message: str) -> None:
+    def _section(self, row: int, title: str, columns, rows, empty_message: str,
+                 tag_fn=None) -> None:
         card = Card(self.scroll_body)
         card.grid(row=row, column=0, sticky="ew", pady=(0, theme.spacing.md))
         card.grid_columnconfigure(0, weight=1)
-        ctk.CTkLabel(card, text=title, font=theme.fonts.body_bold, text_color=theme.colors.text).grid(
+        ctk.CTkLabel(card, text=title, font=theme.fonts.card_title, text_color=theme.colors.text).grid(
             row=0, column=0, sticky="w", padx=theme.spacing.md, pady=(theme.spacing.md, theme.spacing.sm)
         )
-        table = DataTable(card, columns=columns, empty_message=empty_message)
+        kwargs: dict = {}
+        if tag_fn is not None:
+            kwargs = {
+                "row_tag_fn": tag_fn,
+                "tag_colors": {status: colors[0] for status, colors in theme.STATUS_COLORS.items()},
+            }
+        table = DataTable(card, columns=columns, empty_message=empty_message, **kwargs)
         table.grid(row=1, column=0, sticky="nsew", padx=theme.spacing.md, pady=(0, theme.spacing.md))
         table.configure(height=150)
         table.set_rows(rows)

@@ -82,12 +82,29 @@ class MainShell(ctk.CTkFrame):
         sidebar.grid_propagate(False)
         sidebar.grid_rowconfigure(1, weight=1)
 
+        brand = ctk.CTkFrame(sidebar, fg_color="transparent")
+        brand.grid(row=0, column=0, sticky="ew", padx=theme.spacing.md, pady=(theme.spacing.lg, theme.spacing.md))
+        brand.grid_columnconfigure(1, weight=1)
+
         ctk.CTkLabel(
-            sidebar, text="CodingHub", font=theme.fonts.logo, text_color=theme.colors.white
-        ).grid(row=0, column=0, sticky="w", padx=theme.spacing.lg, pady=(theme.spacing.xl, theme.spacing.lg))
+            brand, text="CH", font=("Segoe UI", 18, "bold"),
+            text_color=theme.colors.white, fg_color=theme.colors.primary,
+            corner_radius=12, width=44, height=44,
+        ).grid(row=0, column=0, rowspan=2, padx=(0, theme.spacing.sm))
+        ctk.CTkLabel(
+            brand, text="CodingHub", font=theme.fonts.logo, text_color=theme.colors.white, anchor="w"
+        ).grid(row=0, column=1, sticky="w")
+        ctk.CTkLabel(
+            brand, text="✨ Billing Suite  •  v1.0", font=theme.fonts.small, text_color="#94A3B8", anchor="w"
+        ).grid(row=1, column=1, sticky="w")
 
         nav_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
         nav_frame.grid(row=1, column=0, sticky="new", padx=theme.spacing.sm)
+
+        menu_label = ctk.CTkLabel(
+            nav_frame, text="MENU", font=("Segoe UI", 10, "bold"), text_color="#64748B", anchor="w"
+        )
+        menu_label.pack(fill="x", padx=theme.spacing.sm, pady=(0, 4))
 
         for key, label, icon in NAV_ITEMS:
             required_permission = NAV_PERMISSIONS.get(key)
@@ -99,10 +116,10 @@ class MainShell(ctk.CTkFrame):
                 anchor="w",
                 font=theme.fonts.body,
                 fg_color="transparent",
-                hover_color="#1E293B",
+                hover_color=theme.colors.sidebar_hover,
                 text_color="#CBD5E1",
                 corner_radius=theme.spacing.radius,
-                height=40,
+                height=42,
                 command=lambda k=key: self._navigate(k),
             )
             btn.pack(fill="x", pady=2)
@@ -110,16 +127,19 @@ class MainShell(ctk.CTkFrame):
 
         logout_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
         logout_frame.grid(row=2, column=0, sticky="sew", padx=theme.spacing.sm, pady=theme.spacing.lg)
+        ctk.CTkLabel(
+            logout_frame, text="Made for CodingHub 🚀", font=theme.fonts.small, text_color="#64748B"
+        ).pack(pady=(0, theme.spacing.xs))
         ctk.CTkButton(
             logout_frame,
             text="⏻   Logout",
             anchor="w",
             font=theme.fonts.body,
             fg_color="transparent",
-            hover_color="#1E293B",
+            hover_color=theme.colors.sidebar_hover,
             text_color="#CBD5E1",
             corner_radius=theme.spacing.radius,
-            height=40,
+            height=42,
             command=self._handle_logout,
         ).pack(fill="x")
 
@@ -130,7 +150,7 @@ class MainShell(ctk.CTkFrame):
         main.grid_rowconfigure(1, weight=1)
         main.grid_columnconfigure(0, weight=1)
 
-        topbar = ctk.CTkFrame(main, fg_color=theme.colors.card, height=64, corner_radius=0)
+        topbar = ctk.CTkFrame(main, fg_color=theme.colors.card, height=76, corner_radius=0)
         topbar.grid(row=0, column=0, sticky="ew")
         topbar.grid_propagate(False)
         topbar.grid_columnconfigure(0, weight=1)
@@ -140,18 +160,33 @@ class MainShell(ctk.CTkFrame):
         )
         self.page_title_label.grid(row=0, column=0, sticky="w", padx=theme.spacing.lg)
 
+        from datetime import datetime
+
+        self.date_label = ctk.CTkLabel(
+            topbar, text=datetime.now().strftime("%A, %d %b %Y"),
+            font=theme.fonts.small, text_color=theme.colors.text_secondary,
+        )
+        self.date_label.grid(row=1, column=0, sticky="w", padx=theme.spacing.lg)
+
         user_box = ctk.CTkFrame(topbar, fg_color="transparent")
-        user_box.grid(row=0, column=1, sticky="e", padx=theme.spacing.lg)
+        user_box.grid(row=0, column=1, rowspan=2, sticky="e", padx=theme.spacing.lg)
         full_name = auth_service.current_session.full_name or ""
         role_name = auth_service.current_session.role_name or ""
+        initials = "".join(part[:1] for part in full_name.split()[:2]).upper() or "U"
         ctk.CTkLabel(
-            user_box, text=full_name, font=theme.fonts.body_bold, text_color=theme.colors.text
+            user_box, text=initials, font=theme.fonts.body_bold,
+            text_color=theme.colors.white, fg_color=theme.colors.primary,
+            corner_radius=18, width=36, height=36,
         ).pack(side="left", padx=(0, theme.spacing.sm))
+        name_col = ctk.CTkFrame(user_box, fg_color="transparent")
+        name_col.pack(side="left")
         ctk.CTkLabel(
-            user_box, text=role_name, font=theme.fonts.small,
-            text_color=theme.colors.primary, fg_color=theme.colors.background,
-            corner_radius=theme.spacing.radius, padx=theme.spacing.sm,
-        ).pack(side="left")
+            name_col, text=f"👋 {full_name}", font=theme.fonts.body_bold, text_color=theme.colors.text, anchor="w"
+        ).pack(anchor="w")
+        ctk.CTkLabel(
+            name_col, text=f"● {role_name}", font=theme.fonts.small,
+            text_color=theme.colors.primary, anchor="w",
+        ).pack(anchor="w")
 
         self.content = ctk.CTkFrame(main, fg_color=theme.colors.background)
         self.content.grid(row=1, column=0, sticky="nsew")
@@ -164,8 +199,10 @@ class MainShell(ctk.CTkFrame):
         for nav_key, btn in self._nav_buttons.items():
             is_active = nav_key == key
             btn.configure(
-                fg_color=theme.colors.primary if is_active else "transparent",
+                fg_color=theme.colors.sidebar_active if is_active else "transparent",
+                hover_color=theme.colors.primary_hover if is_active else theme.colors.sidebar_hover,
                 text_color=theme.colors.white if is_active else "#CBD5E1",
+                font=theme.fonts.body_bold if is_active else theme.fonts.body,
             )
 
         label = next(label for k, label, _icon in NAV_ITEMS if k == key)
@@ -175,7 +212,12 @@ class MainShell(ctk.CTkFrame):
             child.destroy()
 
         if key == "dashboard":
-            page = DashboardView(self.content)
+            page = DashboardView(
+                self.content,
+                on_new_invoice=lambda: self._navigate("billing", new_invoice=True),
+                on_add_customer=lambda: self._navigate("customers"),
+                on_view_reports=lambda: self._navigate("reports"),
+            )
             page.grid(row=0, column=0, sticky="nsew")
         elif key == "customers":
             page = CustomerListView(self.content)

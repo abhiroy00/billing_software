@@ -6,6 +6,7 @@ import customtkinter as ctk
 
 from controllers import user_controller
 from gui.components.buttons import PrimaryButton
+from gui.components.cards import Card
 from gui.components.dialogs import ConfirmDialog
 from gui.components.inputs import SearchBox
 from gui.components.table import DataTable
@@ -17,6 +18,18 @@ from utils.formatters import format_date
 
 ROLE_FILTER_ALL = "All Roles"
 
+_ROLE_ICONS = {"Admin": "👑", "Manager": "💼", "Accountant": "🧾", "Operator": "🖥️"}
+
+
+def _soft(color: str) -> str:
+    return {
+        theme.colors.success: theme.colors.success_soft,
+        theme.colors.danger: theme.colors.danger_soft,
+        theme.colors.primary: theme.colors.primary_soft,
+        theme.colors.info: theme.colors.info_soft,
+        theme.colors.warning: theme.colors.warning_soft,
+    }.get(color, theme.colors.primary_soft)
+
 
 class UserListView(ctk.CTkFrame):
     def __init__(self, master):
@@ -24,12 +37,13 @@ class UserListView(ctk.CTkFrame):
         self._query = ""
         self._role_id: int | None = None
 
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
         self._roles = user_controller.list_roles()
         self._role_id_by_name = {r["name"]: r["id"] for r in self._roles}
 
+        self._build_summary()
         self._build_toolbar()
 
         self.table = DataTable(
@@ -48,13 +62,57 @@ class UserListView(ctk.CTkFrame):
             tag_colors={"active": theme.colors.success, "inactive": theme.colors.text_secondary},
             empty_message="No users found",
         )
-        self.table.grid(row=1, column=0, sticky="nsew", padx=theme.spacing.lg, pady=(0, theme.spacing.lg))
+        self.table.grid(row=2, column=0, sticky="nsew", padx=theme.spacing.lg, pady=(0, theme.spacing.lg))
 
         self._load()
 
+    def _build_summary(self) -> None:
+        strip = ctk.CTkFrame(self, fg_color="transparent")
+        strip.grid(row=0, column=0, sticky="ew", padx=theme.spacing.lg, pady=(theme.spacing.lg, 0))
+        strip.grid_columnconfigure((0, 1, 2), weight=1, uniform="users")
+
+        self._sum_values: list = []
+        for i, (icon, label, accent) in enumerate(
+            [("👥", "TOTAL USERS", theme.colors.primary),
+             ("✅", "ACTIVE", theme.colors.success),
+             ("👑", "ADMINS", theme.colors.warning)]
+        ):
+            card = Card(strip)
+            card.grid(row=0, column=i, sticky="nsew", padx=(0, theme.spacing.sm) if i < 2 else (theme.spacing.sm, 0))
+            card.grid_columnconfigure(1, weight=1)
+            ctk.CTkLabel(
+                card, text=icon, font=("Segoe UI", 22), text_color=accent,
+                fg_color=_soft(accent), corner_radius=10, width=46, height=46,
+            ).grid(row=0, column=0, rowspan=2, padx=theme.spacing.sm, pady=theme.spacing.sm)
+            ctk.CTkLabel(
+                card, text=label, font=theme.fonts.kpi_label, text_color=theme.colors.text_secondary, anchor="w"
+            ).grid(row=0, column=1, sticky="w", padx=(0, theme.spacing.sm), pady=(theme.spacing.sm, 0))
+            value_label = ctk.CTkLabel(
+                card, text="—", font=("Segoe UI", 20, "bold"), text_color=theme.colors.text, anchor="w"
+            )
+            value_label.grid(row=1, column=1, sticky="w", padx=(0, theme.spacing.sm), pady=(0, theme.spacing.sm))
+            self._sum_values.append(value_label)
+
+    def _refresh_summary(self, rows: list[dict]) -> None:
+        total = len(rows)
+        active = sum(1 for r in rows if r.get("is_active"))
+        admins = sum(1 for r in rows if str(r.get("role_name", "")).lower() == "admin")
+        texts = [f"{total:,}", f"{active:,}", f"{admins:,}"]
+        try:
+            from gui.components.animations import count_up
+
+            for label, text in zip(self._sum_values, texts):
+                count_up(label, text, duration_ms=500)
+        except Exception:
+            for label, text in zip(self._sum_values, texts):
+                try:
+                    label.configure(text=text)
+                except Exception:
+                    pass
+
     def _build_toolbar(self) -> None:
         bar = ctk.CTkFrame(self, fg_color="transparent")
-        bar.grid(row=0, column=0, sticky="ew", padx=theme.spacing.lg, pady=theme.spacing.lg)
+        bar.grid(row=1, column=0, sticky="ew", padx=theme.spacing.lg, pady=theme.spacing.md)
         bar.grid_columnconfigure(0, weight=1)
 
         self.search_box = SearchBox(bar, placeholder="Search by name, username, email...", on_change=self._on_search)
@@ -85,12 +143,14 @@ class UserListView(ctk.CTkFrame):
         display_rows = [
             {
                 **row,
+                "role_name": f"{_ROLE_ICONS.get(row['role_name'], '👤')} {row['role_name']}",
                 "status_display": "Active" if row["is_active"] else "Inactive",
                 "last_login_display": format_date(row["last_login_at"]) if row["last_login_at"] else "Never",
             }
             for row in rows
         ]
         self.table.set_rows(display_rows)
+        self._refresh_summary(rows)
 
     def _open_add_form(self) -> None:
         UserFormModal(self, on_saved=lambda _u: self._load())

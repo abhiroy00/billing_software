@@ -28,9 +28,11 @@ class UserFormModal(Modal):
 
         self.scroll_body.grid_columnconfigure(0, weight=1)
 
+        self._section_label("👤 Profile")
         self.full_name = self._field("Full Name", required=True)
         self.username = self._field("Username", required=True)
         self.email = self._field("Email")
+        self._section_label("🛡️ Access & Security")
         self.role = self._field("Role", widget_factory=dropdown_factory(role_values))
         self.password = self._field(
             "Password" if not user_id else "New Password (leave blank to keep current)",
@@ -50,6 +52,14 @@ class UserFormModal(Modal):
 
         SecondaryButton(self.actions, text="Cancel", command=self.destroy).pack(side="right", padx=(theme.spacing.sm, 0))
         PrimaryButton(self.actions, text="Save User", command=self._save).pack(side="right")
+
+    def _section_label(self, text: str) -> None:
+        import customtkinter as ctk
+
+        ctk.CTkLabel(
+            self.scroll_body, text=text, font=theme.fonts.card_title,
+            text_color=theme.colors.primary, anchor="w",
+        ).pack(fill="x", pady=(theme.spacing.sm, theme.spacing.xs))
 
     def _field(self, label, required=False, show=None, widget_factory=None):
         field = FormField(self.scroll_body, label, required=required, show=show, widget_factory=widget_factory)

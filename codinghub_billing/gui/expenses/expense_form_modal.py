@@ -33,21 +33,23 @@ class ExpenseFormModal(Modal):
         self.scroll_body.grid_columnconfigure(0, weight=1)
         self.scroll_body.grid_columnconfigure(1, weight=1)
 
-        self.category = self._field("Category", 0, 0, required=True, widget_factory=dropdown_factory(category_values))
-        self.amount = self._field("Amount (₹)", 0, 1, required=True)
-        self.expense_date = self._field("Expense Date (DD-MM-YYYY)", 1, 0)
+        self._section_label("💰 Expense Details", 0)
+        self.category = self._field("Category", 1, 0, required=True, widget_factory=dropdown_factory(category_values))
+        self.amount = self._field("Amount (₹)", 1, 1, required=True)
+        self.expense_date = self._field("Expense Date (DD-MM-YYYY)", 2, 0)
         self.expense_date.set(format_date(date.today()))
         self.payment_mode = self._field(
-            "Payment Mode", 1, 1, widget_factory=dropdown_factory(expense_controller.PAYMENT_MODES)
+            "Payment Mode", 2, 1, widget_factory=dropdown_factory(expense_controller.PAYMENT_MODES)
         )
-        self.vendor = self._field("Vendor", 2, 0, colspan=2)
-        self.description = self._field("Description", 3, 0, colspan=2)
+        self._section_label("📝 Details & Receipt", 3)
+        self.vendor = self._field("Vendor", 4, 0, colspan=2)
+        self.description = self._field("Description", 5, 0, colspan=2)
         self.notes = self._field(
-            "Notes", 4, 0, colspan=2, widget_factory=lambda m: ctk.CTkTextbox(m, height=60, font=theme.fonts.body)
+            "Notes", 6, 0, colspan=2, widget_factory=lambda m: ctk.CTkTextbox(m, height=60, font=theme.fonts.body)
         )
 
         attach_row = ctk.CTkFrame(self.scroll_body, fg_color="transparent")
-        attach_row.grid(row=5, column=0, columnspan=2, sticky="w", pady=(theme.spacing.sm, 0))
+        attach_row.grid(row=7, column=0, columnspan=2, sticky="w", pady=(theme.spacing.sm, 0))
         self.attachment_status = ctk.CTkLabel(
             attach_row, text="No attachment", font=theme.fonts.small, text_color=theme.colors.text_secondary
         )
@@ -60,6 +62,12 @@ class ExpenseFormModal(Modal):
 
         SecondaryButton(self.actions, text="Cancel", command=self.destroy).pack(side="right", padx=(theme.spacing.sm, 0))
         PrimaryButton(self.actions, text="Save Expense", command=self._save).pack(side="right")
+
+    def _section_label(self, text: str, row: int) -> None:
+        ctk.CTkLabel(
+            self.scroll_body, text=text, font=theme.fonts.card_title,
+            text_color=theme.colors.primary, anchor="w",
+        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=(theme.spacing.sm, theme.spacing.xs))
 
     def _field(self, label, row, col, required=False, colspan=1, widget_factory=None):
         field = FormField(self.scroll_body, label, required=required, widget_factory=widget_factory)

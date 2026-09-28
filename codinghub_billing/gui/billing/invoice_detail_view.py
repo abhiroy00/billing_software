@@ -6,7 +6,7 @@ from typing import Callable
 
 import customtkinter as ctk
 
-from controllers import invoice_controller
+from controllers import document_controller, invoice_controller
 from gui.components.badges import StatusBadge
 from gui.components.buttons import DangerButton, PrimaryButton, SecondaryButton
 from gui.components.cards import Card
@@ -43,7 +43,13 @@ class InvoiceDetailModal(Modal):
         self._render(detail)
 
     def _render(self, detail: dict) -> None:
+        from decimal import Decimal
+
         invoice = detail["invoice"]
+        grand = invoice["grand_total"] or Decimal("0")
+        paid = invoice["paid_amount"] or Decimal("0")
+        due = invoice["due_amount"] or Decimal("0")
+        progress = float(paid / grand) if grand > 0 else 0.0
 
         header = Card(self.scroll_body)
         header.grid(row=0, column=0, sticky="ew", pady=(0, theme.spacing.md))
@@ -52,19 +58,31 @@ class InvoiceDetailModal(Modal):
         title_row = ctk.CTkFrame(header, fg_color="transparent")
         title_row.grid(row=0, column=0, sticky="ew", padx=theme.spacing.md, pady=(theme.spacing.md, theme.spacing.xs))
         ctk.CTkLabel(
-            title_row, text=invoice["invoice_number"], font=theme.fonts.section_heading, text_color=theme.colors.text
+            title_row, text=f"🧾  {invoice['invoice_number']}", font=("Segoe UI", 19, "bold"), text_color=theme.colors.text
         ).pack(side="left")
         StatusBadge(title_row, status=invoice["status"]).pack(side="left", padx=(theme.spacing.sm, 0))
 
-        meta_text = f"{format_date(invoice['invoice_date'])}  •  {invoice['customer_name']}  •  {invoice['customer_mobile']}"
+        meta_text = f"📅  {format_date(invoice['invoice_date'])}     👤  {invoice['customer_name']}     📱  {invoice['customer_mobile']}"
         ctk.CTkLabel(
             header, text=meta_text, font=theme.fonts.body, text_color=theme.colors.text_secondary, anchor="w"
-        ).grid(row=1, column=0, sticky="w", padx=theme.spacing.md, pady=(0, theme.spacing.md))
+        ).grid(row=1, column=0, sticky="w", padx=theme.spacing.md, pady=(0, theme.spacing.sm))
+
+        progress_row = ctk.CTkFrame(header, fg_color="transparent")
+        progress_row.grid(row=2, column=0, sticky="ew", padx=theme.spacing.md, pady=(0, theme.spacing.md))
+        progress_row.grid_columnconfigure(0, weight=1)
+        bar_color = theme.colors.success if due == 0 else (theme.colors.warning if progress > 0 else theme.colors.danger)
+        bar = ctk.CTkProgressBar(progress_row, height=10, progress_color=bar_color, fg_color=theme.colors.background)
+        bar.set(max(0.0, min(1.0, progress)))
+        bar.grid(row=0, column=0, sticky="ew", pady=(0, 4))
+        pct_text = "✅ Fully paid" if due == 0 else f"💰 {format_currency(paid)} paid of {format_currency(grand)}  •  {progress * 100:.0f}%"
+        ctk.CTkLabel(
+            progress_row, text=pct_text, font=theme.fonts.small_bold, text_color=bar_color, anchor="w"
+        ).grid(row=1, column=0, sticky="w")
 
         items_card = Card(self.scroll_body)
         items_card.grid(row=1, column=0, sticky="ew", pady=(0, theme.spacing.md))
         items_card.grid_columnconfigure(0, weight=1)
-        ctk.CTkLabel(items_card, text="Items", font=theme.fonts.body_bold, text_color=theme.colors.text).grid(
+        ctk.CTkLabel(items_card, text=f"📦 Items  ({len(detail['items'])})", font=theme.fonts.card_title, text_color=theme.colors.text).grid(
             row=0, column=0, sticky="w", padx=theme.spacing.md, pady=(theme.spacing.md, theme.spacing.sm)
         )
         items_table = DataTable(
@@ -121,7 +139,7 @@ class InvoiceDetailModal(Modal):
         payments_card = Card(self.scroll_body)
         payments_card.grid(row=3, column=0, sticky="ew", pady=(0, theme.spacing.md))
         payments_card.grid_columnconfigure(0, weight=1)
-        ctk.CTkLabel(payments_card, text="Payments", font=theme.fonts.body_bold, text_color=theme.colors.text).grid(
+        ctk.CTkLabel(payments_card, text=f"💰 Payments  ({len(detail['payments'])})", font=theme.fonts.card_title, text_color=theme.colors.text).grid(
             row=0, column=0, sticky="w", padx=theme.spacing.md, pady=(theme.spacing.md, theme.spacing.sm)
         )
         payments_table = DataTable(
@@ -132,6 +150,7 @@ class InvoiceDetailModal(Modal):
                 ("payment_mode", "Mode", 100, "w"),
                 ("reference_number", "Reference", 140, "w"),
             ],
+            on_row_context_menu=self._payment_menu,
             empty_message="No payments recorded yet.",
         )
         payments_table.grid(row=1, column=0, sticky="nsew", padx=theme.spacing.md, pady=(0, theme.spacing.md))
@@ -144,6 +163,13 @@ class InvoiceDetailModal(Modal):
         )
 
         SecondaryButton(self.actions, text="Close", command=self.destroy).pack(side="right", padx=(theme.spacing.sm, 0))
+        SecondaryButton(self.actions, text="🖨️  Invoice PDF", command=lambda: self._download_invoice_pdf(invoice)).pack(
+            side="right", padx=(theme.spacing.sm, 0)
+        )
+        if detail["payments"]:
+            SecondaryButton(self.actions, text="🧾  Receipt PDF", command=lambda: self._download_receipt_pdf(invoice)).pack(
+                side="right", padx=(theme.spacing.sm, 0)
+            )
         if invoice["status"] != "CANCELLED":
             if invoice["due_amount"] > 0:
                 PrimaryButton(self.actions, text="Record Payment", command=lambda: self._record_payment(invoice)).pack(
@@ -153,6 +179,50 @@ class InvoiceDetailModal(Modal):
                 DangerButton(self.actions, text="Cancel Invoice", command=lambda: self._confirm_cancel(invoice)).pack(
                     side="right"
                 )
+
+    def _payment_menu(self, row: dict) -> list[tuple[str, object]]:
+        return [("Download Receipt PDF", lambda: self._download_receipt_pdf(None, payment_id=row.get("id")))]
+
+    def _download_invoice_pdf(self, invoice: dict) -> None:
+        from tkinter import filedialog
+
+        path = filedialog.asksaveasfilename(
+            title="Save Invoice PDF",
+            initialfile=document_controller.default_invoice_path(invoice["invoice_number"]).name,
+            defaultextension=".pdf",
+            filetypes=[("PDF files", "*.pdf")],
+        )
+        if not path:
+            return
+        success, message, saved = document_controller.generate_invoice_pdf(invoice["id"], path)
+        root = self.master.winfo_toplevel()
+        if not success:
+            show_toast(root, message, variant="error")
+            return
+        show_toast(root, "Invoice PDF saved. Opening…", variant="success")
+        document_controller.open_file(saved)
+
+    def _download_receipt_pdf(self, invoice: dict | None, payment_id: int | None = None) -> None:
+        from tkinter import filedialog
+
+        invoice_id = invoice["id"] if invoice else self._invoice_id
+        suggested = document_controller.suggest_receipt_path(invoice_id, payment_id)
+        path = filedialog.asksaveasfilename(
+            title="Save Payment Receipt PDF",
+            initialfile=suggested.name,
+            initialdir=str(suggested.parent),
+            defaultextension=".pdf",
+            filetypes=[("PDF files", "*.pdf")],
+        )
+        if not path:
+            return
+        success, message, saved = document_controller.generate_receipt_pdf(invoice_id, path, payment_id)
+        root = self.master.winfo_toplevel()
+        if not success:
+            show_toast(root, message, variant="error")
+            return
+        show_toast(root, "Receipt PDF saved. Opening…", variant="success")
+        document_controller.open_file(saved)
 
     def _record_payment(self, invoice: dict) -> None:
         from gui.billing.payment_form_modal import PaymentFormModal

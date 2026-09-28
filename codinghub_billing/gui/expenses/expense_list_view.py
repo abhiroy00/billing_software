@@ -8,6 +8,7 @@ import customtkinter as ctk
 
 from controllers import expense_controller
 from gui.components.buttons import PrimaryButton, SecondaryButton
+from gui.components.cards import Card
 from gui.components.dialogs import ConfirmDialog
 from gui.components.inputs import SearchBox
 from gui.components.table import DataTable
@@ -18,6 +19,21 @@ from utils.formatters import format_currency, format_date
 
 CATEGORY_FILTER_ALL = "All Categories"
 
+_CATEGORY_ICONS = {
+    "Rent": "🏠", "Salary": "👔", "Electricity": "💡", "Internet": "🌐",
+    "Marketing": "📣", "Software": "💻", "Hardware": "🖥️", "Travel": "✈️", "Other": "🧾",
+}
+
+
+def _soft(color: str) -> str:
+    return {
+        theme.colors.success: theme.colors.success_soft,
+        theme.colors.danger: theme.colors.danger_soft,
+        theme.colors.primary: theme.colors.primary_soft,
+        theme.colors.info: theme.colors.info_soft,
+        theme.colors.warning: theme.colors.warning_soft,
+    }.get(color, theme.colors.primary_soft)
+
 
 class ExpenseListView(ctk.CTkFrame):
     def __init__(self, master):
@@ -25,12 +41,13 @@ class ExpenseListView(ctk.CTkFrame):
         self._query = ""
         self._category_id: int | None = None
 
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
         self._categories = expense_controller.list_categories()
         self._category_id_by_name = {c["name"]: c["id"] for c in self._categories}
 
+        self._build_summary()
         self._build_toolbar()
 
         self.table = DataTable(
@@ -49,13 +66,65 @@ class ExpenseListView(ctk.CTkFrame):
             empty_action_label="Add Expense",
             on_empty_action=self._open_add_form,
         )
-        self.table.grid(row=1, column=0, sticky="nsew", padx=theme.spacing.lg, pady=(0, theme.spacing.lg))
+        self.table.grid(row=2, column=0, sticky="nsew", padx=theme.spacing.lg, pady=(0, theme.spacing.lg))
 
         self._load()
 
+    def _build_summary(self) -> None:
+        strip = ctk.CTkFrame(self, fg_color="transparent")
+        strip.grid(row=0, column=0, sticky="ew", padx=theme.spacing.lg, pady=(theme.spacing.lg, 0))
+        strip.grid_columnconfigure((0, 1, 2), weight=1, uniform="exp")
+
+        self._sum_values: list = []
+        for i, (icon, label, accent) in enumerate(
+            [("🧮", "TOTAL SPENT", theme.colors.danger),
+             ("🧾", "ENTRIES", theme.colors.primary),
+             ("🏷️", "TOP CATEGORY", theme.colors.warning)]
+        ):
+            card = Card(strip)
+            card.grid(row=0, column=i, sticky="nsew", padx=(0, theme.spacing.sm) if i < 2 else (theme.spacing.sm, 0))
+            card.grid_columnconfigure(1, weight=1)
+            ctk.CTkLabel(
+                card, text=icon, font=("Segoe UI", 22), text_color=accent,
+                fg_color=_soft(accent), corner_radius=10, width=46, height=46,
+            ).grid(row=0, column=0, rowspan=2, padx=theme.spacing.sm, pady=theme.spacing.sm)
+            ctk.CTkLabel(
+                card, text=label, font=theme.fonts.kpi_label, text_color=theme.colors.text_secondary, anchor="w"
+            ).grid(row=0, column=1, sticky="w", padx=(0, theme.spacing.sm), pady=(theme.spacing.sm, 0))
+            value_label = ctk.CTkLabel(
+                card, text="—", font=("Segoe UI", 20, "bold"), text_color=theme.colors.text, anchor="w"
+            )
+            value_label.grid(row=1, column=1, sticky="w", padx=(0, theme.spacing.sm), pady=(0, theme.spacing.sm))
+            self._sum_values.append(value_label)
+
+    def _refresh_summary(self, rows: list[dict]) -> None:
+        from collections import Counter
+        from decimal import Decimal
+
+        total = sum((r.get("amount") or Decimal("0")) for r in rows)
+        counts = Counter(r.get("category_name") or "Other" for r in rows)
+        if counts:
+            top_cat, top_n = counts.most_common(1)[0]
+            top_text = f"{_CATEGORY_ICONS.get(top_cat, '🧾')} {top_cat} ×{top_n}"
+        else:
+            top_text = "—"
+        texts = [format_currency(total), f"{len(rows):,}", top_text]
+        try:
+            from gui.components.animations import count_up
+
+            count_up(self._sum_values[0], texts[0], duration_ms=500)
+            count_up(self._sum_values[1], texts[1], duration_ms=500)
+            self._sum_values[2].configure(text=texts[2])
+        except Exception:
+            for label, text in zip(self._sum_values, texts):
+                try:
+                    label.configure(text=text)
+                except Exception:
+                    pass
+
     def _build_toolbar(self) -> None:
         bar = ctk.CTkFrame(self, fg_color="transparent")
-        bar.grid(row=0, column=0, sticky="ew", padx=theme.spacing.lg, pady=theme.spacing.lg)
+        bar.grid(row=1, column=0, sticky="ew", padx=theme.spacing.lg, pady=theme.spacing.md)
         bar.grid_columnconfigure(0, weight=1)
 
         self.search_box = SearchBox(bar, placeholder="Search by description or vendor...", on_change=self._on_search)
@@ -90,11 +159,13 @@ class ExpenseListView(ctk.CTkFrame):
             {
                 **row,
                 "expense_date": format_date(row["expense_date"]),
+                "category_name": f"{_CATEGORY_ICONS.get(row['category_name'], '🧾')} {row['category_name']}",
                 "amount_display": format_currency(row["amount"]),
             }
             for row in rows
         ]
         self.table.set_rows(display_rows)
+        self._refresh_summary(rows)
 
     def _open_add_form(self) -> None:
         ExpenseFormModal(self, on_saved=lambda _e: self._load())

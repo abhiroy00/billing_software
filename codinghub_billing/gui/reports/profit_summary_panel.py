@@ -25,10 +25,19 @@ class ProfitSummaryPanel(ctk.CTkFrame):
 
         self.net_profit_card = Card(self)
         self.net_profit_card.grid(row=2, column=0, sticky="ew")
-        self.net_profit_label = ctk.CTkLabel(
-            self.net_profit_card, text="", font=theme.fonts.page_heading, text_color=theme.colors.text
+        self.net_profit_card.configure(fg_color=theme.colors.secondary)
+        self.net_profit_emoji = ctk.CTkLabel(
+            self.net_profit_card, text="📈", font=("Segoe UI", 44), text_color=theme.colors.white
         )
-        self.net_profit_label.pack(pady=theme.spacing.lg)
+        self.net_profit_emoji.pack(pady=(theme.spacing.lg, 0))
+        self.net_profit_label = ctk.CTkLabel(
+            self.net_profit_card, text="", font=theme.fonts.page_heading, text_color=theme.colors.white
+        )
+        self.net_profit_label.pack()
+        self.net_profit_sub = ctk.CTkLabel(
+            self.net_profit_card, text="", font=theme.fonts.body, text_color="#94A3B8"
+        )
+        self.net_profit_sub.pack(pady=(4, theme.spacing.lg))
 
         self.date_range.trigger_initial_load()
 
@@ -46,6 +55,14 @@ class ProfitSummaryPanel(ctk.CTkFrame):
         build_summary_row(self.summary_holder, cards).pack(fill="x")
 
         net_profit = summary.get("net_profit", 0)
-        color = theme.colors.success if net_profit >= 0 else theme.colors.danger
-        label = "Net Profit" if net_profit >= 0 else "Net Loss"
+        is_profit = net_profit >= 0
+        color = theme.colors.success if is_profit else theme.colors.danger
+        label = "Net Profit" if is_profit else "Net Loss"
+        self.net_profit_emoji.configure(text="📈" if is_profit else "📉")
         self.net_profit_label.configure(text=f"{label}:  {format_currency(abs(net_profit))}", text_color=color)
+        collected = summary.get("revenue_collected", 0) or 0
+        try:
+            margin = (float(net_profit) / float(collected) * 100) if float(collected) > 0 else 0.0
+            self.net_profit_sub.configure(text=f"Profit margin {margin:.1f}% on collected revenue")
+        except Exception:
+            self.net_profit_sub.configure(text="")

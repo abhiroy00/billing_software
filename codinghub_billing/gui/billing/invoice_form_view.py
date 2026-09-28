@@ -75,7 +75,7 @@ class InvoiceFormView(ctk.CTkFrame):
         card = Card(self.scroll)
         card.grid(row=2, column=0, sticky="ew", pady=(0, theme.spacing.md))
         card.grid_columnconfigure(0, weight=1)
-        ctk.CTkLabel(card, text="Customer", font=theme.fonts.body_bold, text_color=theme.colors.text).grid(
+        ctk.CTkLabel(card, text="1️⃣  Customer", font=theme.fonts.body_bold, text_color=theme.colors.text).grid(
             row=0, column=0, sticky="w", padx=theme.spacing.md, pady=(theme.spacing.md, theme.spacing.sm)
         )
 
@@ -139,7 +139,7 @@ class InvoiceFormView(ctk.CTkFrame):
         card = Card(self.scroll)
         card.grid(row=3, column=0, sticky="ew", pady=(0, theme.spacing.md))
         card.grid_columnconfigure(0, weight=1)
-        ctk.CTkLabel(card, text="Items", font=theme.fonts.body_bold, text_color=theme.colors.text).grid(
+        ctk.CTkLabel(card, text="2️⃣  Items", font=theme.fonts.body_bold, text_color=theme.colors.text).grid(
             row=0, column=0, sticky="w", padx=theme.spacing.md, pady=(theme.spacing.md, theme.spacing.sm)
         )
 
@@ -307,7 +307,7 @@ class InvoiceFormView(ctk.CTkFrame):
         card = Card(self.scroll)
         card.grid(row=5, column=0, sticky="ew", pady=(0, theme.spacing.md))
         card.grid_columnconfigure((0, 1), weight=1)
-        ctk.CTkLabel(card, text="Initial Payment (optional)", font=theme.fonts.body_bold, text_color=theme.colors.text).grid(
+        ctk.CTkLabel(card, text="3️⃣  Initial Payment (optional)", font=theme.fonts.body_bold, text_color=theme.colors.text).grid(
             row=0, column=0, columnspan=2, sticky="w", padx=theme.spacing.md, pady=(theme.spacing.md, theme.spacing.sm)
         )
         self.payment_amount = FormField(card, "Amount Received Now (₹)")

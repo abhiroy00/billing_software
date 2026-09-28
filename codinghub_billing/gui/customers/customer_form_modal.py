@@ -33,23 +33,26 @@ class CustomerFormModal(Modal):
         self._course_name_to_id = {name: cid for cid, name in course_options}
         course_values = [NO_COURSE_LABEL] + [name for _cid, name in course_options]
 
-        self.student_id = self._field("Student ID", 0, 0)
-        self.name = self._field("Name", 0, 1, required=True)
-        self.mobile = self._field("Mobile", 1, 0, required=True)
-        self.email = self._field("Email", 1, 1)
+        self._section_label("👤 Personal Details", 0)
+        self.student_id = self._field("Student ID", 1, 0)
+        self.name = self._field("Name", 1, 1, required=True)
         self.gender = self._field("Gender", 2, 0, widget_factory=dropdown_factory(GENDER_OPTIONS))
         self.date_of_birth = self._field("Date of Birth (DD-MM-YYYY)", 2, 1)
-        self.address = self._field("Address", 3, 0, colspan=2)
-        self.city = self._field("City", 4, 0)
-        self.state_field = self._field("State", 4, 1)
-        self.pincode = self._field("Pincode", 5, 0)
-        self.gstin = self._field("GSTIN", 5, 1)
-        self.pan = self._field("PAN", 6, 0)
-        self.course = self._field("Course", 6, 1, widget_factory=dropdown_factory(course_values))
-        self.enrollment_date = self._field("Enrollment Date (DD-MM-YYYY)", 7, 0)
-        self.status = self._field("Status", 7, 1, widget_factory=dropdown_factory(STATUS_OPTIONS))
+        self._section_label("📞 Contact & Address", 3)
+        self.mobile = self._field("Mobile", 4, 0, required=True)
+        self.email = self._field("Email", 4, 1)
+        self.address = self._field("Address", 5, 0, colspan=2)
+        self.city = self._field("City", 6, 0)
+        self.state_field = self._field("State", 6, 1)
+        self.pincode = self._field("Pincode", 7, 0)
+        self.gstin = self._field("GSTIN", 7, 1)
+        self.pan = self._field("PAN", 8, 0)
+        self._section_label("📚 Course & Status", 9)
+        self.course = self._field("Course", 10, 0, widget_factory=dropdown_factory(course_values))
+        self.enrollment_date = self._field("Enrollment Date (DD-MM-YYYY)", 10, 1)
+        self.status = self._field("Status", 11, 0, widget_factory=dropdown_factory(STATUS_OPTIONS))
         self.notes = self._field(
-            "Notes", 8, 0, colspan=2, widget_factory=lambda m: ctk.CTkTextbox(m, height=70, font=theme.fonts.body)
+            "Notes", 12, 0, colspan=2, widget_factory=lambda m: ctk.CTkTextbox(m, height=70, font=theme.fonts.body)
         )
 
         if customer_id:
@@ -57,6 +60,12 @@ class CustomerFormModal(Modal):
 
         SecondaryButton(self.actions, text="Cancel", command=self.destroy).pack(side="right", padx=(theme.spacing.sm, 0))
         PrimaryButton(self.actions, text="Save Customer", command=self._save).pack(side="right")
+
+    def _section_label(self, text: str, row: int) -> None:
+        ctk.CTkLabel(
+            self.scroll_body, text=text, font=theme.fonts.card_title,
+            text_color=theme.colors.primary, anchor="w",
+        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=(theme.spacing.sm, theme.spacing.xs))
 
     def _field(self, label, row, col, required=False, colspan=1, widget_factory=None):
         field = FormField(self.scroll_body, label, required=required, widget_factory=widget_factory)
