@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"/d/bllingsoftware_codinghub\" && mkdir -p codinghub_billing/database/models codinghub_billing/database/repositories codinghub_billing/services codinghub_billing/controllers codinghub_billing/gui/login codinghub_billing/gui/setup_wizard codinghub_billing/gui/dashboard codinghub_billing/gui/components codinghub_billing/utils codinghub_billing/tests codinghub_billing/assets/icons && find codinghub_billing -type d)",
+      "Bash(python -m pytest tests/ -q)",
+      "Bash(pip show *)",
+      "Bash(python app.py)",
+      "Bash(python -c ' *)",
+      "Bash(echo \"exit code: $?\")",
+      "Bash(echo \"EXITCODE:$?\")",
+      "Bash(tasklist //FI \"IMAGENAME eq python.exe\")",
+      "Bash(taskkill //PID 28336 //F)",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_app.py\")",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/seed_first_run.py\")",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_login.py\")",
+      "Bash(taskkill //IM python.exe //F)",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_full.py\")",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/seed_customers.py\")",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_customers.py\")",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_customers2.py\")",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_verify_fix.py\")",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/seed_courses.py\")",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_courses.py\")",
+      "Bash(python -m pytest tests/test_gst_service.py -q)",
+      "Bash(python -m pytest tests/test_invoice_service.py -q)",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_billing_calib.py\")",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_billing_calib2.py\")",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_billing_full.py\")",
+      "Bash(taskkill //IM HPRunningCentral.exe //F)",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_payments.py\")",
+      "Bash(python -m pytest tests/test_expense_service.py -q)",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_expenses.py\")",
+      "Bash(python -m pytest tests/test_report_service.py -q)",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_reports.py\")",
+      "Bash(python -m pytest tests/test_user_service.py -q)",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/seed_operator.py\")",
+      "Bash(python \"C:/Users/abhis/AppData/Local/Temp/claude/d--bllingsoftware-codinghub/4a8f2cbb-bc63-4fcc-8d37-9dca2a9d3f1f/scratchpad/drive_users.py\")"
+    ]
+  }
+}
