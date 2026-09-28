@@ -8,6 +8,8 @@ from typing import Callable
 import customtkinter as ctk
 
 from controllers import auth_controller
+from gui.audit.audit_view import AuditView
+from gui.backup.backup_view import BackupView
 from gui.billing.billing_view import BillingView
 from gui.components.empty_state import EmptyState
 from gui.courses.course_list_view import CourseListView
@@ -16,6 +18,7 @@ from gui.dashboard.dashboard_view import DashboardView
 from gui.expenses.expense_list_view import ExpenseListView
 from gui.payments.payments_list_view import PaymentsListView
 from gui.reports.reports_view import ReportsView
+from gui.settings.settings_view import SettingsView
 from gui.theme import theme
 from gui.users.user_list_view import UserListView
 from services import auth_service
@@ -31,21 +34,22 @@ NAV_ITEMS: list[tuple[str, str, str]] = [
     ("users", "Users", "\U0001F464"),
     ("settings", "Settings", "⚙"),
     ("backup", "Backup", "\U0001F5C4"),
+    ("audit", "Audit Log", "\U0001F4DC"),
 ]
 
 # Section 23 RBAC: nav items map to the permission code required to see them.
 # Items absent from this mapping are visible to any authenticated user.
+# Audit Log reuses the "reports" permission so Manager/Accountant/Admin see
+# it — no new permission code, so existing installations need no migration.
 NAV_PERMISSIONS: dict[str, str] = {
     "reports": "reports",
     "users": "users",
     "settings": "settings",
     "backup": "backup",
+    "audit": "reports",
 }
 
-_STUB_MESSAGES = {
-    "settings": "The full Settings module is coming in the next phase of development.",
-    "backup": "Manual/automatic backup & restore is coming in the next phase of development.",
-}
+_STUB_MESSAGES: dict[str, str] = {}
 
 
 class MainShell(ctk.CTkFrame):
@@ -236,6 +240,15 @@ class MainShell(ctk.CTkFrame):
             page.grid(row=0, column=0, sticky="nsew")
         elif key == "reports":
             page = ReportsView(self.content)
+            page.grid(row=0, column=0, sticky="nsew")
+        elif key == "settings":
+            page = SettingsView(self.content)
+            page.grid(row=0, column=0, sticky="nsew")
+        elif key == "backup":
+            page = BackupView(self.content)
+            page.grid(row=0, column=0, sticky="nsew")
+        elif key == "audit":
+            page = AuditView(self.content)
             page.grid(row=0, column=0, sticky="nsew")
         elif key == "users":
             page = UserListView(self.content)

@@ -15,6 +15,10 @@ class UserRepository(BaseRepository[User]):
         stmt = select(User).where(User.username == username)
         return self.session.execute(stmt).scalar_one_or_none()
 
+    def get_by_email(self, email: str) -> User | None:
+        stmt = select(User).where(User.email == email)
+        return self.session.execute(stmt).scalar_one_or_none()
+
     def count(self) -> int:
         return len(self.list())
 

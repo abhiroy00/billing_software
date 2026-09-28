@@ -7,7 +7,7 @@ from tkinter import filedialog
 import customtkinter as ctk
 
 from controllers import customer_controller
-from gui.components.buttons import PrimaryButton, SecondaryButton
+from gui.components.buttons import DangerButton, PrimaryButton, SecondaryButton
 from gui.components.cards import Card
 from gui.components.dialogs import ConfirmDialog
 from gui.components.inputs import SearchBox
@@ -138,7 +138,16 @@ class CustomerListView(ctk.CTkFrame):
         SecondaryButton(bar, text="Export", icon="\U0001F4E4", command=self._export).grid(
             row=0, column=2, padx=(0, theme.spacing.sm)
         )
-        PrimaryButton(bar, text="New Customer", icon="+", command=self._open_add_form).grid(row=0, column=3)
+        SecondaryButton(bar, text="Import", icon="📥", command=self._open_import).grid(
+            row=0, column=3, padx=(0, theme.spacing.sm)
+        )
+        SecondaryButton(bar, text="✏️ Edit", command=self._edit_selected).grid(
+            row=0, column=4, padx=(0, theme.spacing.sm)
+        )
+        DangerButton(bar, text="🗑️ Delete", command=self._delete_selected).grid(
+            row=0, column=5, padx=(0, theme.spacing.sm)
+        )
+        PrimaryButton(bar, text="New Customer", icon="+", command=self._open_add_form).grid(row=0, column=6)
 
     def _on_search(self, value: str) -> None:
         self._query = value
@@ -157,8 +166,35 @@ class CustomerListView(ctk.CTkFrame):
     def _open_add_form(self) -> None:
         CustomerFormModal(self, on_saved=lambda _c: self._load())
 
+    def _open_import(self) -> None:
+        from gui.components.import_dialog import ImportDialog
+
+        ImportDialog(
+            self, title="Import Customers", entity_name="Customers",
+            template_filename="Customer-Import-Template.xlsx",
+            template_fn=customer_controller.customer_template_file,
+            import_fn=customer_controller.import_customers,
+            on_done=self._load,
+        )
+
     def _open_edit_form(self, row: dict) -> None:
         CustomerFormModal(self, customer_id=row["id"], on_saved=lambda _c: self._load())
+
+    def _selected_or_warn(self) -> dict | None:
+        row = self.table.get_selected()
+        if row is None:
+            show_toast(self.winfo_toplevel(), "Pehle list me se ek customer select karo.", variant="error")
+        return row
+
+    def _edit_selected(self) -> None:
+        row = self._selected_or_warn()
+        if row is not None:
+            self._open_edit_form(row)
+
+    def _delete_selected(self) -> None:
+        row = self._selected_or_warn()
+        if row is not None:
+            self._confirm_delete(row)
 
     def _open_detail(self, row: dict) -> None:
         CustomerDetailModal(self, customer_id=row["id"], on_changed=self._load)

@@ -50,27 +50,60 @@ class FormField(ctk.CTkFrame):
         self.error_label.grid(row=2, column=0, sticky="w", pady=(2, 0))
 
     def get(self) -> str:
-        """Supports both single-line Entry widgets and multi-line Textbox
-        widgets (CTkTextbox.get requires a start index, CTkEntry.get doesn't)."""
+        """Supports Entry, CTkTextbox, CTkOptionMenu and CTkComboBox."""
+        widget = self.input
+        if isinstance(widget, ctk.CTkTextbox):
+            try:
+                return widget.get("1.0", "end-1c")
+            except Exception:
+                return ""
         try:
-            return self.input.get()
+            return widget.get()
         except TypeError:
-            return self.input.get("1.0", "end").rstrip("\n")
+            # CTkTextbox.get requires a start index (older fallback path).
+            try:
+                return widget.get("1.0", "end").rstrip("\n")
+            except Exception:
+                return ""
         except AttributeError:
             return ""
 
     def set(self, value: str) -> None:
-        """Entry/Textbox widgets get delete()+insert(); widgets with no
-        delete() (CTkOptionMenu, CTkSegmentedButton, ...) fall back to set()."""
+        """Entry/Textbox/OptionMenu/ComboBox aware setter.
+
+        Pehle widget type check hota hai — purana try/except sirf
+        TypeError pakadta tha, jabki tkinter Text.delete(0, 'end')
+        TclError deta hai. Isi wajah se Edit modal (Notes/Description
+        wala) load hote hi crash ho jata tha aur Save button banta
+        hi nahi tha — edit execute ho hi nahi pata tha.
+        """
+        widget = self.input
+        value = "" if value is None else str(value)
+        if isinstance(widget, ctk.CTkTextbox):
+            try:
+                widget.delete("1.0", "end")
+                widget.insert("1.0", value)
+            except Exception:
+                pass
+            return
+        if isinstance(widget, (ctk.CTkOptionMenu, ctk.CTkComboBox)):
+            try:
+                widget.set(value)
+            except Exception:
+                pass
+            return
         try:
-            self.input.delete(0, "end")
-            self.input.insert(0, value)
-        except TypeError:
-            self.input.delete("1.0", "end")
-            self.input.insert("1.0", value)
+            widget.delete(0, "end")
+            widget.insert(0, value)
         except AttributeError:
             try:
-                self.input.set(value)
+                widget.set(value)
+            except Exception:
+                pass
+        except Exception:
+            # Last-resort fallback for custom widgets.
+            try:
+                widget.set(value)
             except Exception:
                 pass
 

@@ -122,3 +122,52 @@ def export_courses_to_excel(path: str, query: str = "", status: str | None = Non
     except Exception:
         logger.exception("Failed to export courses")
         return False, USER_FRIENDLY_MESSAGE
+
+
+COURSE_TEMPLATE_HEADERS = ["Name*", "Price (₹)*", "Category", "Duration", "GST %", "Discount (₹)", "Status", "Description"]
+_COURSE_TEMPLATE_SAMPLE = ["Python Full Stack", "25000", "Programming", "3 months", "18", "0", "Active", "Demo row — delete before import"]
+
+
+def course_template_file(path: str) -> tuple[bool, str]:
+    try:
+        from utils import import_utils
+
+        import_utils.write_template(path, "Courses", COURSE_TEMPLATE_HEADERS, _COURSE_TEMPLATE_SAMPLE)
+        return True, ""
+    except Exception:
+        logger.exception("Failed to write course template")
+        return False, USER_FRIENDLY_MESSAGE
+
+
+def import_courses(path: str) -> tuple[int, list[str]]:
+    """Import courses from .xlsx/.csv. Returns (imported_count, errors)."""
+    from utils import import_utils
+
+    try:
+        _, rows = import_utils.read_table_rows(path)
+    except ValueError as exc:
+        return 0, [str(exc)]
+
+    imported = 0
+    errors: list[str] = []
+    for lineno, row in enumerate(rows, start=2):
+        get = lambda *names: import_utils.cell(row, *names)  # noqa: E731
+        data = {
+            "name": get("name"),
+            "category": get("category"),
+            "description": get("description"),
+            "price": get("price (₹)*", "price (₹)", "price"),
+            "gst_percentage": get("gst %", "gst", "gst percentage") or "18",
+            "discount": get("discount (₹)", "discount") or "0",
+            "duration": get("duration"),
+            "status": get("status") or "Active",
+        }
+        success, message, _ = create_course(data)
+        if success:
+            imported += 1
+        else:
+            errors.append(f"Row {lineno}: {message}")
+        if len(errors) >= 20:
+            errors.append("…stopping error list at 20, fix these and re-import the rest.")
+            break
+    return imported, errors

@@ -143,7 +143,10 @@ class ExpenseListView(ctk.CTkFrame):
         SecondaryButton(bar, text="Export", icon="\U0001F4E4", command=self._export).grid(
             row=0, column=2, padx=(0, theme.spacing.sm)
         )
-        PrimaryButton(bar, text="New Expense", icon="+", command=self._open_add_form).grid(row=0, column=3)
+        SecondaryButton(bar, text="Import", icon="📥", command=self._open_import).grid(
+            row=0, column=3, padx=(0, theme.spacing.sm)
+        )
+        PrimaryButton(bar, text="New Expense", icon="+", command=self._open_add_form).grid(row=0, column=4)
 
     def _on_search(self, value: str) -> None:
         self._query = value
@@ -169,6 +172,17 @@ class ExpenseListView(ctk.CTkFrame):
 
     def _open_add_form(self) -> None:
         ExpenseFormModal(self, on_saved=lambda _e: self._load())
+
+    def _open_import(self) -> None:
+        from gui.components.import_dialog import ImportDialog
+
+        ImportDialog(
+            self, title="Import Expenses", entity_name="Expenses",
+            template_filename="Expense-Import-Template.xlsx",
+            template_fn=expense_controller.expense_template_file,
+            import_fn=expense_controller.import_expenses,
+            on_done=self._load,
+        )
 
     def _open_edit_form(self, row: dict) -> None:
         ExpenseFormModal(self, expense_id=row["id"], on_saved=lambda _e: self._load())

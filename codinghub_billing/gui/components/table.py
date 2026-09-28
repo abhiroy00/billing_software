@@ -115,6 +115,17 @@ class DataTable(ctk.CTkFrame):
         self._rows = rows
         self._render()
 
+    def get_selected(self) -> dict[str, Any] | None:
+        """Currently highlighted row (for toolbar Edit/Delete buttons)."""
+        try:
+            selection = self.tree.selection()
+        except Exception:
+            return None
+        if not selection:
+            return None
+        iid = selection[0]
+        return next((r for r in self._rows if str(r.get("id")) == iid), None)
+
     def _render(self) -> None:
         for item in self.tree.get_children():
             self.tree.delete(item)

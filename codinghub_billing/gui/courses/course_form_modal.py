@@ -16,6 +16,16 @@ from gui.theme import theme
 STATUS_OPTIONS = ["Active", "Inactive"]
 
 
+def _default_tax_rate() -> int:
+    """Settings -> Preferences me badla default GST %, fallback config value."""
+    try:
+        from controllers import settings_controller
+
+        return settings_controller.get_default_tax_rate()
+    except Exception:
+        return config.DEFAULT_TAX_RATE
+
+
 class CourseFormModal(Modal):
     def __init__(self, master, course_id: int | None = None, on_saved: Callable[[dict], None] | None = None):
         title = "Edit Course" if course_id else "New Course"
@@ -46,7 +56,7 @@ class CourseFormModal(Modal):
             "Description", 6, 0, colspan=2, widget_factory=lambda m: ctk.CTkTextbox(m, height=80, font=theme.fonts.body)
         )
 
-        self.gst_percentage.set(str(config.DEFAULT_TAX_RATE))
+        self.gst_percentage.set(str(_default_tax_rate()))
         self.discount.set("0")
 
         if course_id:

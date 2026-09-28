@@ -9,9 +9,8 @@ This phase implements: project architecture, full database schema, the design sy
 reusable component library, authentication + RBAC groundwork, the first-run Setup Wizard, the
 main application shell, and a fully DB-backed Dashboard.
 
-Customers, Courses, Billing/Invoicing, Payments, Expenses, Reports, full Settings, Backup/Restore,
-Audit Log viewing, PDF/Excel generation, and packaging are **not yet implemented** — their sidebar
-entries route to an explicit "coming in a later phase" placeholder rather than a broken screen.
+Customers, Courses, Billing/Invoicing, Payments, Expenses, Reports, Users,
+Settings, Backup/Restore and Audit Log viewing are implemented.
 
 ## Setup
 

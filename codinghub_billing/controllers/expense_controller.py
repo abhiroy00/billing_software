@@ -76,6 +76,69 @@ def delete_expense(expense_id: int) -> tuple[bool, str]:
         return False, USER_FRIENDLY_MESSAGE
 
 
+EXPENSE_TEMPLATE_HEADERS = ["Category*", "Description", "Amount (₹)*", "Date (DD-MM-YYYY)*", "Payment Mode", "Vendor", "Notes"]
+_EXPENSE_TEMPLATE_SAMPLE = ["Rent", "Office rent", "15000", "01-09-2026", "Bank Transfer", "Landlord", "Demo row — delete before import"]
+
+
+def expense_template_file(path: str) -> tuple[bool, str]:
+    try:
+        from utils import import_utils
+
+        import_utils.write_template(path, "Expenses", EXPENSE_TEMPLATE_HEADERS, _EXPENSE_TEMPLATE_SAMPLE)
+        return True, ""
+    except Exception:
+        logger.exception("Failed to write expense template")
+        return False, USER_FRIENDLY_MESSAGE
+
+
+def import_expenses(path: str) -> tuple[int, list[str]]:
+    """Import expenses from .xlsx/.csv. Returns (imported_count, errors)."""
+    from utils import import_utils
+    from utils.formatters import parse_date
+
+    try:
+        _, rows = import_utils.read_table_rows(path)
+    except ValueError as exc:
+        return 0, [str(exc)]
+
+    category_by_name = {c["name"].lower(): c["id"] for c in list_categories()}
+    valid_categories = ", ".join(sorted(category_by_name)) or "—"
+    imported = 0
+    errors: list[str] = []
+    for lineno, row in enumerate(rows, start=2):
+        get = lambda *names: import_utils.cell(row, *names)  # noqa: E731
+        category_name = get("category")
+        category_id = category_by_name.get(category_name.lower()) if category_name else None
+        if category_id is None:
+            errors.append(f"Row {lineno}: unknown category '{category_name}'. Valid: {valid_categories}.")
+            continue
+        date_text = get("date (dd-mm-yyyy)*", "date (dd-mm-yyyy)", "date", "expense date")
+        try:
+            expense_date = parse_date(date_text) if date_text else None
+        except Exception:
+            errors.append(f"Row {lineno}: date must be DD-MM-YYYY.")
+            continue
+        data = {
+            "category_id": category_id,
+            "description": get("description"),
+            "amount": get("amount (₹)*", "amount (₹)", "amount"),
+            "expense_date": expense_date,
+            "payment_mode": get("payment mode", "mode") or "Cash",
+            "vendor": get("vendor"),
+            "notes": get("notes"),
+            "attachment_path": None,
+        }
+        success, message, _ = create_expense(data)
+        if success:
+            imported += 1
+        else:
+            errors.append(f"Row {lineno}: {message}")
+        if len(errors) >= 20:
+            errors.append("…stopping error list at 20, fix these and re-import the rest.")
+            break
+    return imported, errors
+
+
 def attach_file(source_path: str) -> tuple[bool, str, str | None]:
     try:
         path = save_attachment(source_path, config.attachments_dir)

@@ -63,11 +63,16 @@ def create_user(session, actor_user_id: int | None, data: dict) -> dict:
     repo = UserRepository(session)
     if repo.get_by_username(data["username"].strip()):
         raise UserError("This username is already taken.")
+    email = (data.get("email") or "").strip() or None
+    if email and repo.get_by_email(email):
+        raise UserError("This email is already registered.")
+    if RoleRepository(session).get(data["role_id"]) is None:
+        raise UserError("Selected role is invalid.")
 
     user = User(
         username=data["username"].strip(),
         full_name=data["full_name"].strip(),
-        email=(data.get("email") or "").strip() or None,
+        email=email,
         password_hash=hash_password(password),
         role_id=data["role_id"],
         is_active=True,
@@ -93,6 +98,13 @@ def update_user(session, actor_user_id: int | None, user_id: int, data: dict) ->
     existing = repo.get_by_username(data["username"].strip())
     if existing and existing.id != user_id:
         raise UserError("This username is already taken.")
+    email = (data.get("email") or "").strip() or None
+    if email:
+        email_owner = repo.get_by_email(email)
+        if email_owner and email_owner.id != user_id:
+            raise UserError("This email is already registered.")
+    if RoleRepository(session).get(data["role_id"]) is None:
+        raise UserError("Selected role is invalid.")
 
     if not data.get("is_active", True) and user_id == actor_user_id:
         raise UserError("You cannot deactivate your own account.")
@@ -101,7 +113,7 @@ def update_user(session, actor_user_id: int | None, user_id: int, data: dict) ->
 
     user.username = data["username"].strip()
     user.full_name = data["full_name"].strip()
-    user.email = (data.get("email") or "").strip() or None
+    user.email = email
     user.role_id = data["role_id"]
     user.is_active = data.get("is_active", user.is_active)
 
