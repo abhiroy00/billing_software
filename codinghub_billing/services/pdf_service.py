@@ -139,9 +139,7 @@ def _header_table(business: dict, right_lines: list[str], st: dict) -> Table:
         except Exception:
             logo = Paragraph("", st["base"])
     else:
-        name = (business.get("business_name") or "B").strip()
-        initials = "".join(p[:1] for p in name.split()[:2]).upper() or "B"
-        logo = Paragraph(f"<font size=20 color='#4F46E5'><b>{initials}</b></font>", st["base"])
+        logo = Paragraph("", st["base"])
 
     name_para = Paragraph(business.get("business_name") or "Business", st["business"])
     tagline = Paragraph("Smart Solutions for a Smarter Future", st["tagline"])
