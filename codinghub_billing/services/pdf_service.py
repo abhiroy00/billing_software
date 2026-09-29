@@ -330,9 +330,9 @@ def build_receipt_pdf(detail: dict, payment: dict, business: dict, invoice_setti
     ))
 
     totals = _totals_table([
-        ("", f"Rs. {format_inr(inv.get('grand_total', 0))}", True),
-        ("", f"Rs. {format_inr(inv.get('paid_amount', 0))}", True),
-        ("", f"Rs. {format_inr(inv.get('due_amount', 0))}", True),
+        ("Total", inv.get('grand_total', 0), True),
+        ("Paid", inv.get('paid_amount', 0), True),
+        ("Balance", inv.get('due_amount', 0), True),
     ], st)
     story.append(totals)
     story.append(Spacer(1, 6 * mm))
