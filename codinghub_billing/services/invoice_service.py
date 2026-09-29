@@ -14,7 +14,7 @@ from database.models.customer import Customer
 from database.models.invoice import Invoice, InvoiceItem
 from database.repositories.invoice_repository import InvoiceRepository
 from database.repositories.payment_repository import PaymentRepository
-from services import audit_service, gst_service, settings_service
+from services import gst_service, settings_service
 
 STATUS_PENDING = "PENDING"
 STATUS_PARTIAL = "PARTIAL"
@@ -169,11 +169,6 @@ def create_invoice(
         )
     session.flush()
 
-    audit_service.log(
-        session, user_id, "create", entity_type="invoice", entity_id=invoice.id,
-        description=f"Created invoice {invoice.invoice_number} for {customer.name} (grand total {totals.grand_total})",
-    )
-
     if initial_payment and Decimal(str(initial_payment.get("amount", 0))) > 0:
         from services import payment_service
 
@@ -288,10 +283,6 @@ def cancel_invoice(session: Session, user_id: int | None, invoice_id: int) -> No
 
     invoice.status = STATUS_CANCELLED
     session.flush()
-    audit_service.log(
-        session, user_id, "cancel", entity_type="invoice", entity_id=invoice_id,
-        description=f"Cancelled invoice {invoice.invoice_number}",
-    )
 
 
 def recalculate_status(invoice: Invoice) -> None:

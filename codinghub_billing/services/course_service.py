@@ -11,7 +11,6 @@ from database.models.course import Course
 from database.models.customer import Customer
 from database.models.invoice import InvoiceItem
 from database.repositories.course_repository import CourseRepository
-from services import audit_service
 from utils import validators
 
 STATUS_OPTIONS = ["Active", "Inactive"]
@@ -89,10 +88,6 @@ def create_course(session: Session, user_id: int | None, data: dict) -> dict:
         status=data.get("status", "Active"),
     )
     CourseRepository(session).add(course)
-    audit_service.log(
-        session, user_id, "create", entity_type="course", entity_id=course.id,
-        description=f"Created course {course.name}",
-    )
     return _to_dict(course)
 
 
@@ -115,11 +110,6 @@ def update_course(session: Session, user_id: int | None, course_id: int, data: d
     course.duration = (data.get("duration") or "").strip()
     course.status = data.get("status", course.status)
     repo.update(course)
-
-    audit_service.log(
-        session, user_id, "update", entity_type="course", entity_id=course.id,
-        description=f"Updated course {course.name}",
-    )
     return _to_dict(course)
 
 
@@ -142,10 +132,6 @@ def delete_course(session: Session, user_id: int | None, course_id: int) -> None
 
     name = course.name
     repo.delete(course)
-    audit_service.log(
-        session, user_id, "delete", entity_type="course", entity_id=course_id,
-        description=f"Deleted course {name}",
-    )
 
 
 def set_course_status(session: Session, user_id: int | None, course_id: int, status: str) -> dict:
@@ -155,8 +141,4 @@ def set_course_status(session: Session, user_id: int | None, course_id: int, sta
         raise CourseError("Course not found.")
     course.status = status
     repo.update(course)
-    audit_service.log(
-        session, user_id, "update", entity_type="course", entity_id=course.id,
-        description=f"Marked course {course.name} as {status}",
-    )
     return _to_dict(course)

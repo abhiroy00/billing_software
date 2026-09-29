@@ -9,7 +9,7 @@ import logging
 from config import config
 from controllers import settings_controller
 from database.connection import get_engine, get_session
-from services import audit_service, auth_service, backup_service
+from services import auth_service, backup_service
 from utils.logger import USER_FRIENDLY_MESSAGE
 
 logger = logging.getLogger("codinghub")
@@ -37,15 +37,6 @@ def create_backup() -> tuple[bool, str, dict | None]:
         return False, denied, None
     try:
         info = backup_service.create_backup(config.database_path, get_backup_dir())
-        try:
-            with get_session() as session:
-                audit_service.log(
-                    session, auth_service.current_session.user_id, "backup",
-                    entity_type="backup", entity_id=info["name"],
-                    description=f"Manual backup taken: {info['name']} ({info['size_display']})",
-                )
-        except Exception:
-            logger.exception("Backup audit log failed (backup file is safe)")
         return True, "", info
     except backup_service.BackupError as exc:
         return False, str(exc), None
@@ -61,15 +52,6 @@ def delete_backup(path: str) -> tuple[bool, str]:
     try:
         name = path.split("/")[-1].split("\\")[-1]
         backup_service.delete_backup(path, get_backup_dir())
-        try:
-            with get_session() as session:
-                audit_service.log(
-                    session, auth_service.current_session.user_id, "delete",
-                    entity_type="backup", entity_id=name,
-                    description=f"Deleted backup: {name}",
-                )
-        except Exception:
-            logger.exception("Backup delete audit log failed")
         return True, ""
     except backup_service.BackupError as exc:
         return False, str(exc)
@@ -104,16 +86,6 @@ def restore_backup(path: str) -> tuple[bool, str]:
         backup_service.verify_database_tables(config.database_path)
     except backup_service.BackupError as exc:
         return False, str(exc)
-
-    try:
-        with get_session() as session:
-            audit_service.log(
-                session, auth_service.current_session.user_id, "restore",
-                entity_type="backup", entity_id=path.split("/")[-1].split("\\")[-1],
-                description="Database restored from backup",
-            )
-    except Exception:
-        logger.exception("Restore audit log failed (restore itself is done)")
 
     safety = (result.get("safety_copy") or {}).get("name", "")
     restart_note = "Restore ho gaya. App ko restart karo taaki saara data fresh load ho."

@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 
 from database.models.expense import Expense, ExpenseCategory
 from database.repositories.expense_repository import ExpenseCategoryRepository, ExpenseRepository
-from services import audit_service
 from utils import validators
 
 DEFAULT_CATEGORIES = [
@@ -98,10 +97,6 @@ def create_expense(session: Session, user_id: int | None, data: dict) -> dict:
     ExpenseRepository(session).add(expense)
 
     category = session.get(ExpenseCategory, expense.category_id)
-    audit_service.log(
-        session, user_id, "create", entity_type="expense", entity_id=expense.id,
-        description=f"Recorded expense of {expense.amount} ({category.name if category else ''})",
-    )
     return _to_dict(expense, category.name if category else "")
 
 
@@ -127,10 +122,6 @@ def update_expense(session: Session, user_id: int | None, expense_id: int, data:
     repo.update(expense)
 
     category = session.get(ExpenseCategory, expense.category_id)
-    audit_service.log(
-        session, user_id, "update", entity_type="expense", entity_id=expense.id,
-        description=f"Updated expense of {expense.amount} ({category.name if category else ''})",
-    )
     return _to_dict(expense, category.name if category else "")
 
 
@@ -142,7 +133,3 @@ def delete_expense(session: Session, user_id: int | None, expense_id: int) -> No
 
     amount = expense.amount
     repo.delete(expense)
-    audit_service.log(
-        session, user_id, "delete", entity_type="expense", entity_id=expense_id,
-        description=f"Deleted expense of {amount}",
-    )

@@ -81,6 +81,7 @@ class DataTable(ctk.CTkFrame):
         self._on_row_context_menu = on_row_context_menu
         self._row_tag_fn = row_tag_fn
         self._rows: list[dict[str, Any]] = []
+        self._iid_to_row: dict[str, dict[str, Any]] = {}
         self._sort_key: str | None = None
         self._sort_reverse = False
 
@@ -123,8 +124,7 @@ class DataTable(ctk.CTkFrame):
             return None
         if not selection:
             return None
-        iid = selection[0]
-        return next((r for r in self._rows if str(r.get("id")) == iid), None)
+        return self._iid_to_row.get(selection[0])
 
     def _render(self) -> None:
         for item in self.tree.get_children():
@@ -137,16 +137,21 @@ class DataTable(ctk.CTkFrame):
             )
 
         if not rows:
+            self._iid_to_row = {}
             self.tree.grid_remove()
             self._empty_state.place(relx=0.5, rely=0.5, anchor="center")
         else:
             self._empty_state.place_forget()
             self.tree.grid()
-            for row in rows:
+            self._iid_to_row = {}
+            for idx, row in enumerate(rows):
                 values = [row.get(key, "") for key, *_ in self._columns]
                 tags = (self._row_tag_fn(row),) if self._row_tag_fn else ()
+                row_id = row.get("id")
+                iid = str(row_id) if row_id is not None else f"row-{idx}"
+                self._iid_to_row[iid] = row
                 self.tree.insert(
-                    "", "end", iid=str(row.get("id", len(self.tree.get_children()))), values=values, tags=tags
+                    "", "end", iid=iid, values=values, tags=tags
                 )
 
     def _sort_by(self, key: str) -> None:
@@ -161,8 +166,7 @@ class DataTable(ctk.CTkFrame):
         selection = self.tree.selection()
         if not selection:
             return
-        iid = selection[0]
-        row = next((r for r in self._rows if str(r.get("id")) == iid), None)
+        row = self._iid_to_row.get(selection[0])
         if row and self._on_row_double_click:
             self._on_row_double_click(row)
 
@@ -171,7 +175,7 @@ class DataTable(ctk.CTkFrame):
         if not iid:
             return
         self.tree.selection_set(iid)
-        row = next((r for r in self._rows if str(r.get("id")) == iid), None)
+        row = self._iid_to_row.get(iid)
         if not row or not self._on_row_context_menu:
             return
         items = self._on_row_context_menu(row)

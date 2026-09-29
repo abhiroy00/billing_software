@@ -8,7 +8,6 @@ from typing import Callable
 import customtkinter as ctk
 
 from controllers import auth_controller
-from gui.audit.audit_view import AuditView
 from gui.backup.backup_view import BackupView
 from gui.billing.billing_view import BillingView
 from gui.components.empty_state import EmptyState
@@ -34,19 +33,15 @@ NAV_ITEMS: list[tuple[str, str, str]] = [
     ("users", "Users", "\U0001F464"),
     ("settings", "Settings", "⚙"),
     ("backup", "Backup", "\U0001F5C4"),
-    ("audit", "Audit Log", "\U0001F4DC"),
 ]
 
 # Section 23 RBAC: nav items map to the permission code required to see them.
 # Items absent from this mapping are visible to any authenticated user.
-# Audit Log reuses the "reports" permission so Manager/Accountant/Admin see
-# it — no new permission code, so existing installations need no migration.
 NAV_PERMISSIONS: dict[str, str] = {
     "reports": "reports",
     "users": "users",
     "settings": "settings",
     "backup": "backup",
-    "audit": "reports",
 }
 
 _STUB_MESSAGES: dict[str, str] = {}
@@ -246,9 +241,6 @@ class MainShell(ctk.CTkFrame):
             page.grid(row=0, column=0, sticky="nsew")
         elif key == "backup":
             page = BackupView(self.content)
-            page.grid(row=0, column=0, sticky="nsew")
-        elif key == "audit":
-            page = AuditView(self.content)
             page.grid(row=0, column=0, sticky="nsew")
         elif key == "users":
             page = UserListView(self.content)

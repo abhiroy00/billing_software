@@ -1,6 +1,6 @@
 """Customer business logic (Section 11). GUI code never touches the
 Customer model or CustomerRepository directly — it always goes through
-here so validation, code generation, and audit logging stay centralized."""
+here so validation and code generation stay centralized."""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -8,13 +8,11 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from database.models.audit_log import AuditLog
 from database.models.course import Course
 from database.models.customer import Customer
 from database.models.invoice import Invoice
 from database.models.payment import Payment
 from database.repositories.customer_repository import CustomerRepository
-from services import audit_service
 from utils import validators
 
 CUSTOMER_CODE_PREFIX = "CUS-"
@@ -134,10 +132,6 @@ def create_customer(session: Session, user_id: int | None, data: dict) -> dict:
         notes=data.get("notes", ""),
     )
     repo.add(customer)
-    audit_service.log(
-        session, user_id, "create", entity_type="customer", entity_id=customer.id,
-        description=f"Created customer {customer.name} ({customer.customer_code})",
-    )
     return _to_dict(customer)
 
 
@@ -169,10 +163,6 @@ def update_customer(session: Session, user_id: int | None, customer_id: int, dat
     customer.notes = data.get("notes", "")
     repo.update(customer)
 
-    audit_service.log(
-        session, user_id, "update", entity_type="customer", entity_id=customer.id,
-        description=f"Updated customer {customer.name} ({customer.customer_code})",
-    )
     return _to_dict(customer)
 
 
@@ -192,10 +182,6 @@ def delete_customer(session: Session, user_id: int | None, customer_id: int) -> 
 
     name, code = customer.name, customer.customer_code
     repo.delete(customer)
-    audit_service.log(
-        session, user_id, "delete", entity_type="customer", entity_id=customer_id,
-        description=f"Deleted customer {name} ({code})",
-    )
 
 
 def get_customer_detail(session: Session, customer_id: int) -> dict:
@@ -240,16 +226,7 @@ def get_customer_detail(session: Session, customer_id: int) -> dict:
         course = session.get(Course, customer.course_id)
         course_name = course.name if course else ""
 
-    activity_rows = session.execute(
-        select(AuditLog)
-        .where(AuditLog.entity_type == "customer", AuditLog.entity_id == str(customer_id))
-        .order_by(AuditLog.timestamp.desc())
-        .limit(20)
-    ).scalars().all()
-    activity = [
-        {"id": a.id, "action": a.action, "description": a.description, "timestamp": a.timestamp}
-        for a in activity_rows
-    ]
+    activity = []
 
     customer_dict = _to_dict(customer)
     customer_dict["course_name"] = course_name

@@ -335,18 +335,6 @@ def build_receipt_pdf(detail: dict, payment: dict, business: dict, invoice_setti
         ("", f"Rs. {format_inr(inv.get('due_amount', 0))}", True),
     ], st)
     story.append(totals)
-    story.append(Spacer(1, 4 * mm))
-    story.append(Paragraph(
-        f"<b>Amount In Words:</b> <i>{amount_in_words_inr(payment.get('amount', 0))}</i>", st["base"],
-    ))
-    story.append(Spacer(1, 2 * mm))
-    story.append(Paragraph(
-        f"<b>Paid Amount In Words:</b> <i>{amount_in_words_inr(inv.get('paid_amount', 0))}</i>", st["base"],
-    ))
-    story.append(Spacer(1, 2 * mm))
-    story.append(Paragraph(
-        f"<b>Balance Amount In Words:</b> <i>{amount_in_words_inr(inv.get('due_amount', 0))}</i>", st["base"],
-    ))
     story.append(Spacer(1, 6 * mm))
     footer = (invoice_settings.get("footer_text")
               or "This is a system-generated receipt confirming the payment received against the above project. Thank you for your business.")
@@ -405,18 +393,6 @@ def build_invoice_pdf(detail: dict, business: dict, invoice_settings: dict) -> b
         ("Balance Due", inv.get("due_amount", 0), True),
     ], st)
     story.append(totals)
-    story.append(Spacer(1, 4 * mm))
-    story.append(Paragraph(
-        f"<b>Amount In Words:</b> <i>{amount_in_words_inr(inv.get('grand_total', 0))}</i>", st["base"],
-    ))
-    story.append(Spacer(1, 2 * mm))
-    story.append(Paragraph(
-        f"<b>Paid Amount In Words:</b> <i>{amount_in_words_inr(inv.get('paid_amount', 0))}</i>", st["base"],
-    ))
-    story.append(Spacer(1, 2 * mm))
-    story.append(Paragraph(
-        f"<b>Balance Amount In Words:</b> <i>{amount_in_words_inr(inv.get('due_amount', 0))}</i>", st["base"],
-    ))
     story.append(Spacer(1, 4 * mm))
     terms = invoice_settings.get("terms") or ""
     if terms:

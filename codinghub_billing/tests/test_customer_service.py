@@ -3,7 +3,6 @@ from decimal import Decimal
 
 import pytest
 
-from database.models.audit_log import AuditLog
 from database.models.course import Course
 from database.models.invoice import Invoice
 from services import customer_service
@@ -38,17 +37,11 @@ def test_generate_customer_code_is_sequential(db_session):
     assert customer_service.generate_customer_code(db_session) == "CUS-0002"
 
 
-def test_create_customer_success_and_audit_log(db_session):
+def test_create_customer_success(db_session):
     customer = customer_service.create_customer(db_session, None, _valid_data())
 
     assert customer["customer_code"] == "CUS-0001"
     assert customer["name"] == "Ravi Kumar"
-
-    logs = db_session.query(AuditLog).all()
-    assert len(logs) == 1
-    assert logs[0].action == "create"
-    assert logs[0].entity_type == "customer"
-    assert logs[0].entity_id == str(customer["id"])
 
 
 @pytest.mark.parametrize(
@@ -157,8 +150,7 @@ def test_get_customer_detail_aggregation(db_session):
     assert len(detail["invoices"]) == 1
     assert detail["invoices"][0]["invoice_number"] == "CH-0003"
     assert detail["outstanding"] == Decimal("2000.00")
-    assert len(detail["activity"]) == 1
-    assert detail["activity"][0]["action"] == "create"
+    assert detail["activity"] == []
 
 
 def test_get_customer_detail_missing_raises(db_session):

@@ -3,7 +3,6 @@ from decimal import Decimal
 
 import pytest
 
-from database.models.audit_log import AuditLog
 from services import expense_service
 
 
@@ -34,16 +33,12 @@ def _valid_data(session, **overrides) -> dict:
     return data
 
 
-def test_create_expense_success_and_audit_log(db_session):
+def test_create_expense_success(db_session):
     expense = expense_service.create_expense(db_session, None, _valid_data(db_session))
 
     assert expense["category_name"] == "Rent"
     assert expense["amount"] == Decimal("15000")
     assert expense["vendor"] == "Landlord Properties"
-
-    logs = db_session.query(AuditLog).filter_by(entity_type="expense").all()
-    assert len(logs) == 1
-    assert logs[0].action == "create"
 
 
 @pytest.mark.parametrize(

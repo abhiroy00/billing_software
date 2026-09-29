@@ -10,7 +10,7 @@ reusable component library, authentication + RBAC groundwork, the first-run Setu
 main application shell, and a fully DB-backed Dashboard.
 
 Customers, Courses, Billing/Invoicing, Payments, Expenses, Reports, Users,
-Settings, Backup/Restore and Audit Log viewing are implemented.
+Settings and Backup/Restore are implemented.
 
 ## Setup
 

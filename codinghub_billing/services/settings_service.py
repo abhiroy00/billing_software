@@ -3,7 +3,7 @@ first-run Setup Wizard, and by the full Settings module (Business, Invoice,
 Backup folder, Preferences tabs).
 
 Raw ``save_*`` helpers stay non-validating for the wizard path; the
-``update_*`` wrappers validate + audit-log and are what the Settings UI
+``update_*`` wrappers validate and are what the Settings UI
 (and its controller) must call.
 """
 from __future__ import annotations
@@ -12,7 +12,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from database.models.settings import AppSetting, BusinessSetting, InvoiceSetting
-from services import audit_service
 from utils import validators
 
 
@@ -187,10 +186,6 @@ def update_business_settings(session: Session, actor_user_id: int | None, data: 
         "logo_path": data.get("logo_path") or None,
     }
     settings = save_business_settings(session, **{k: cleaned[k] for k in _BUSINESS_FIELDS})
-    audit_service.log(
-        session, actor_user_id, "update", entity_type="settings", entity_id="business",
-        description="Updated business profile settings",
-    )
     return business_to_dict(settings)
 
 
@@ -208,10 +203,6 @@ def update_invoice_settings(session: Session, actor_user_id: int | None, data: d
         terms=data.get("terms") or "",
         footer_text=(data.get("footer_text") or "").strip(),
         signature_path=data.get("signature_path") or None,
-    )
-    audit_service.log(
-        session, actor_user_id, "update", entity_type="settings", entity_id="invoice",
-        description=f"Updated invoice settings (prefix {settings.prefix}, next #{settings.next_number})",
     )
     return invoice_to_dict(settings)
 
@@ -232,8 +223,4 @@ def update_preferences(session: Session, actor_user_id: int | None, data: dict) 
     mode = (data.get("appearance_mode") or "Light").strip() or "Light"
     set_app_setting(session, DEFAULT_TAX_RATE_KEY, rate)
     set_app_setting(session, APPEARANCE_MODE_KEY, mode)
-    audit_service.log(
-        session, actor_user_id, "update", entity_type="settings", entity_id="preferences",
-        description=f"Updated preferences (default GST {rate}%, appearance {mode})",
-    )
     return get_preferences(session)

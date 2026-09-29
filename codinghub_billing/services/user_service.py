@@ -1,12 +1,11 @@
 """User & role management (Section 23). Distinct from auth_service, which
 owns login/session state — this is the admin-facing CRUD over accounts.
 Users are never hard-deleted (they're referenced by invoices/payments/
-expenses/audit log as the acting user) — only deactivated."""
+expenses as the acting user) — only deactivated."""
 from __future__ import annotations
 
 from database.models.user import User
 from database.repositories.user_repository import RoleRepository, UserRepository
-from services import audit_service
 from services.auth_service import hash_password
 from utils import validators
 
@@ -78,10 +77,6 @@ def create_user(session, actor_user_id: int | None, data: dict) -> dict:
         is_active=True,
     )
     repo.add(user)
-    audit_service.log(
-        session, actor_user_id, "create", entity_type="user", entity_id=user.id,
-        description=f"Created user {user.username}",
-    )
     return _to_dict(user)
 
 
@@ -124,10 +119,6 @@ def update_user(session, actor_user_id: int | None, user_id: int, data: dict) ->
         user.password_hash = hash_password(new_password)
 
     repo.update(user)
-    audit_service.log(
-        session, actor_user_id, "update", entity_type="user", entity_id=user.id,
-        description=f"Updated user {user.username}",
-    )
     return _to_dict(user)
 
 
@@ -153,8 +144,4 @@ def set_user_active(session, actor_user_id: int | None, user_id: int, is_active:
 
     user.is_active = is_active
     repo.update(user)
-    audit_service.log(
-        session, actor_user_id, "update", entity_type="user", entity_id=user.id,
-        description=f"{'Activated' if is_active else 'Deactivated'} user {user.username}",
-    )
     return _to_dict(user)

@@ -1,5 +1,5 @@
 """Customer detail modal (Section 11): Profile, Invoices, Payments,
-Outstanding, Course, Activity."""
+Outstanding, Course."""
 from __future__ import annotations
 
 from typing import Callable
@@ -159,21 +159,6 @@ class CustomerDetailModal(Modal):
                 for p in detail["payments"]
             ],
             empty_message="No payments yet.",
-        )
-
-        self._section(
-            row=5,
-            title=f"📜 Activity  ({len(detail['activity'])})",
-            columns=[
-                ("timestamp", "When", 140, "w"),
-                ("action", "Action", 90, "w"),
-                ("description", "Description", 260, "w"),
-            ],
-            rows=[
-                {**a, "timestamp": a["timestamp"].strftime("%d-%m-%Y %H:%M")}
-                for a in detail["activity"]
-            ],
-            empty_message="No recent activity.",
         )
 
     def _section(self, row: int, title: str, columns, rows, empty_message: str,

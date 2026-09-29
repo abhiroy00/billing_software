@@ -2,7 +2,7 @@
 
 Pure file logic — dicts/paths in, dicts out — so it is unit-testable
 without a display. The controller layer wires in the live DB path,
-the backup folder from settings, engine disposal and audit logging.
+the backup folder from settings and engine disposal.
 
 Restore safety: the live database is always safety-copied into the
 backup folder (``pre_restore_*``) before being replaced, and the

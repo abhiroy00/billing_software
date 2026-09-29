@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 from database.models.payment import Payment
 from database.repositories.invoice_repository import InvoiceRepository
 from database.repositories.payment_repository import PaymentRepository
-from services import audit_service
 
 PAYMENT_MODES = ["Cash", "UPI", "Bank Transfer", "Card", "Cheque", "Other"]
 
@@ -65,11 +64,6 @@ def record_payment(
     invoice.due_amount = Decimal(str(invoice.grand_total)) - Decimal(str(invoice.paid_amount))
     recalculate_status(invoice)
     session.flush()
-
-    audit_service.log(
-        session, user_id, "create", entity_type="payment", entity_id=payment.id,
-        description=f"Recorded payment of {amount} for invoice {invoice.invoice_number}",
-    )
 
     return {
         "id": payment.id,

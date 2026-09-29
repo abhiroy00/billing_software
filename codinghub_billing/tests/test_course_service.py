@@ -3,7 +3,6 @@ from decimal import Decimal
 
 import pytest
 
-from database.models.audit_log import AuditLog
 from database.models.customer import Customer
 from database.models.invoice import Invoice, InvoiceItem
 from services import course_service
@@ -24,17 +23,12 @@ def _valid_data(**overrides) -> dict:
     return data
 
 
-def test_create_course_success_and_audit_log(db_session):
+def test_create_course_success(db_session):
     course = course_service.create_course(db_session, None, _valid_data())
 
     assert course["name"] == "Python Bootcamp"
     assert course["price"] == Decimal("10000")
     assert course["gst_percentage"] == Decimal("0")
-
-    logs = db_session.query(AuditLog).all()
-    assert len(logs) == 1
-    assert logs[0].action == "create"
-    assert logs[0].entity_type == "course"
 
 
 @pytest.mark.parametrize(

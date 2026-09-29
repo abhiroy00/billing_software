@@ -1,6 +1,5 @@
 import pytest
 
-from database.models.audit_log import AuditLog
 from services import settings_service
 
 
@@ -33,16 +32,11 @@ def _invoice_data(**overrides) -> dict:
     return data
 
 
-def test_update_business_success_and_audit_log(db_session):
+def test_update_business_success(db_session):
     saved = settings_service.update_business_settings(db_session, None, _business_data())
 
     assert saved["business_name"] == "CodingHub"
     assert saved["email"] == "hello@codinghub.com"
-
-    logs = db_session.query(AuditLog).all()
-    assert len(logs) == 1
-    assert logs[0].entity_type == "settings"
-    assert logs[0].entity_id == "business"
 
 
 def test_update_business_trims_and_uppercases(db_session):
@@ -67,7 +61,7 @@ def test_update_business_validation_errors(db_session, overrides, expected_snipp
         settings_service.update_business_settings(db_session, None, _business_data(**overrides))
 
 
-def test_update_invoice_success_and_audit_log(db_session):
+def test_update_invoice_success(db_session):
     saved = settings_service.update_invoice_settings(
         db_session, None, _invoice_data(prefix=" ch ", starting_number="5", next_number="8")
     )
@@ -75,10 +69,6 @@ def test_update_invoice_success_and_audit_log(db_session):
     assert saved["prefix"] == "CH"
     assert saved["starting_number"] == 5
     assert saved["next_number"] == 8
-
-    logs = db_session.query(AuditLog).all()
-    assert len(logs) == 1
-    assert logs[0].entity_id == "invoice"
 
 
 @pytest.mark.parametrize(

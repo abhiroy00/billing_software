@@ -115,11 +115,6 @@ def set_backup_dir(path: str) -> tuple[bool, str, str | None]:
             settings_service.set_app_setting(
                 session, settings_service.BACKUP_DIR_KEY, candidate
             )
-            settings_service.audit_service.log(
-                session, _actor(), "update", entity_type="settings",
-                entity_id="backup",
-                description=f"Changed backup folder to {candidate}",
-            )
         return True, "", candidate
     except Exception:
         logger.exception("Failed to save backup folder")

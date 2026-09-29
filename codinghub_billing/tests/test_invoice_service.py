@@ -3,7 +3,6 @@ from decimal import Decimal
 
 import pytest
 
-from database.models.audit_log import AuditLog
 from services import course_service, customer_service, invoice_service, payment_service, settings_service
 
 
@@ -200,14 +199,12 @@ def test_list_invoices_search_and_filter(db_session):
     assert none_found == []
 
 
-def test_invoice_creation_writes_audit_log(db_session):
+def test_invoice_creation(db_session):
     _seed_business(db_session)
     customer = _seed_customer(db_session)
-    invoice_service.create_invoice(
+    detail = invoice_service.create_invoice(
         db_session, None, customer["id"],
         items=[{"item_name": "Python Bootcamp", "quantity": 1, "rate": "1000", "discount": "0", "tax_percentage": "0"}],
         invoice_date=date.today(),
     )
-    logs = db_session.query(AuditLog).filter_by(entity_type="invoice").all()
-    assert len(logs) == 1
-    assert logs[0].action == "create"
+    assert detail["invoice"]["grand_total"] == Decimal("1000.00")
