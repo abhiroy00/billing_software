@@ -287,3 +287,15 @@ def cancel_invoice(session: Session, user_id: int | None, invoice_id: int) -> No
 
 def recalculate_status(invoice: Invoice) -> None:
     invoice.status = _determine_status(Decimal(str(invoice.paid_amount)), Decimal(str(invoice.grand_total)))
+
+
+def delete_invoice(session: Session, user_id: int | None, invoice_id: int) -> None:
+    """Permanently removes an invoice along with its line items and payments.
+    Customers/courses are left untouched."""
+    repo = InvoiceRepository(session)
+    invoice = repo.get(invoice_id)
+    if invoice is None:
+        raise InvoiceError("Invoice not found.")
+
+    PaymentRepository(session).delete_for_invoice(invoice_id)
+    repo.delete(invoice)

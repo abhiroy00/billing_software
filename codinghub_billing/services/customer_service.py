@@ -184,6 +184,21 @@ def delete_customer(session: Session, user_id: int | None, customer_id: int) -> 
     repo.delete(customer)
 
 
+def delete_customers(session: Session, user_id: int | None, customer_ids: list[int]) -> tuple[int, list[str]]:
+    """Deletes several customers in one go, skipping any that still have
+    invoices. Returns (deleted_count, blocked_customer_names)."""
+    deleted = 0
+    blocked: list[str] = []
+    for customer_id in customer_ids:
+        try:
+            delete_customer(session, user_id, customer_id)
+            deleted += 1
+        except CustomerError:
+            customer = CustomerRepository(session).get(customer_id)
+            blocked.append(customer.name if customer else f"#{customer_id}")
+    return deleted, blocked
+
+
 def get_customer_detail(session: Session, customer_id: int) -> dict:
     customer = CustomerRepository(session).get(customer_id)
     if customer is None:

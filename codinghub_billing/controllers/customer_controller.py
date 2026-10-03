@@ -69,6 +69,21 @@ def delete_customer(customer_id: int) -> tuple[bool, str]:
         return False, USER_FRIENDLY_MESSAGE
 
 
+def delete_customers(customer_ids: list[int]) -> tuple[bool, str, int]:
+    try:
+        with get_session() as session:
+            deleted, blocked = customer_service.delete_customers(
+                session, auth_service.current_session.user_id, customer_ids
+            )
+        if blocked:
+            names = ", ".join(blocked)
+            return True, f"{deleted} deleted. Could not delete (has invoices): {names}.", deleted
+        return True, "", deleted
+    except Exception:
+        logger.exception("Failed to delete customers")
+        return False, USER_FRIENDLY_MESSAGE, 0
+
+
 def list_course_options() -> list[tuple[int, str]]:
     with get_session() as session:
         rows = session.execute(select(Course.id, Course.name).where(Course.status == "Active").order_by(Course.name)).all()

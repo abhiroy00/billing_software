@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from database.models.customer import Customer
@@ -23,6 +23,9 @@ class PaymentRepository(BaseRepository[Payment]):
     def total_paid_for_invoice(self, invoice_id: int) -> Decimal:
         stmt = select(func.coalesce(func.sum(Payment.amount), 0)).where(Payment.invoice_id == invoice_id)
         return Decimal(str(self.session.execute(stmt).scalar_one()))
+
+    def delete_for_invoice(self, invoice_id: int) -> None:
+        self.session.execute(delete(Payment).where(Payment.invoice_id == invoice_id))
 
     def search(
         self,

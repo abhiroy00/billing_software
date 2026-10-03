@@ -75,6 +75,32 @@ def test_delete_customer_success(db_session):
     assert customer_service.get_customer_dict(db_session, created["id"]) is None
 
 
+def test_delete_customers_bulk_skips_blocked(db_session):
+    first = customer_service.create_customer(db_session, None, _valid_data(name="Asha Verma", mobile="9998887771"))
+    second = customer_service.create_customer(db_session, None, _valid_data(name="Bala Reddy", mobile="9998887772"))
+    blocked = customer_service.create_customer(db_session, None, _valid_data(name="Cara Nair", mobile="9998887773"))
+    db_session.add(
+        Invoice(
+            invoice_number="CH-0009",
+            invoice_date=date.today(),
+            customer_id=blocked["id"],
+            grand_total=Decimal("1000.00"),
+            due_amount=Decimal("1000.00"),
+        )
+    )
+    db_session.flush()
+
+    deleted, blocked_names = customer_service.delete_customers(
+        db_session, None, [first["id"], second["id"], blocked["id"]]
+    )
+
+    assert deleted == 2
+    assert blocked_names == ["Cara Nair"]
+    assert customer_service.get_customer_dict(db_session, first["id"]) is None
+    assert customer_service.get_customer_dict(db_session, second["id"]) is None
+    assert customer_service.get_customer_dict(db_session, blocked["id"]) is not None
+
+
 def test_delete_customer_blocked_when_invoices_exist(db_session):
     created = customer_service.create_customer(db_session, None, _valid_data())
     db_session.add(

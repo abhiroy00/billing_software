@@ -8,8 +8,9 @@ import customtkinter as ctk
 
 from controllers import invoice_controller
 from gui.billing.invoice_detail_view import InvoiceDetailModal
-from gui.components.buttons import PrimaryButton
+from gui.components.buttons import DangerButton, PrimaryButton
 from gui.components.cards import Card
+from gui.components.dialogs import ConfirmDialog
 from gui.components.inputs import SearchBox
 from gui.components.table import DataTable
 from gui.components.toast import show_toast
@@ -132,7 +133,13 @@ class BillingListView(ctk.CTkFrame):
         self.status_menu.set("All")
         self.status_menu.grid(row=0, column=1, padx=(0, theme.spacing.sm))
 
-        PrimaryButton(bar, text="New Invoice", icon="+", command=self._on_new_invoice).grid(row=0, column=2)
+        PrimaryButton(bar, text="New Invoice", icon="+", command=self._on_new_invoice).grid(
+            row=0, column=2, padx=(0, theme.spacing.sm)
+        )
+        DangerButton(
+            bar, text="Delete", icon="🗑️", command=self._delete_selected,
+            width=84, height=30, font=theme.fonts.small_bold, corner_radius=6,
+        ).grid(row=0, column=3)
 
     def _on_search(self, value: str) -> None:
         self._query = value
@@ -164,7 +171,40 @@ class BillingListView(ctk.CTkFrame):
         return [
             ("View Invoice", lambda: self._open_detail(row)),
             ("Download Invoice PDF", lambda: self._download_invoice_pdf(row)),
+            ("Delete Invoice", lambda: self._confirm_delete(row)),
         ]
+
+    def _selected_or_warn(self) -> dict | None:
+        row = self.table.get_selected()
+        if row is None:
+            show_toast(self.winfo_toplevel(), "Pehle list me se ek invoice select karo.", variant="error")
+        return row
+
+    def _delete_selected(self) -> None:
+        row = self._selected_or_warn()
+        if row is not None:
+            self._confirm_delete(row)
+
+    def _confirm_delete(self, row: dict) -> None:
+        def do_delete():
+            success, message = invoice_controller.delete_invoice(row["id"])
+            root = self.winfo_toplevel()
+            if success:
+                show_toast(root, f"Invoice {row['invoice_number']} deleted.", variant="success")
+                self._load()
+            else:
+                show_toast(root, message, variant="error")
+
+        ConfirmDialog(
+            self.winfo_toplevel(),
+            title="Delete Invoice",
+            message=(
+                f"Permanently delete invoice {row['invoice_number']} for {row['customer_name']}? "
+                "Its line items and payments will also be deleted. This cannot be undone."
+            ),
+            on_confirm=do_delete,
+            confirm_label="Delete Invoice",
+        )
 
     def _download_invoice_pdf(self, row: dict) -> None:
         from tkinter import filedialog

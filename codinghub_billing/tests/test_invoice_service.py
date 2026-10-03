@@ -2,7 +2,9 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+from sqlalchemy import select
 
+from database.models.invoice import InvoiceItem
 from services import course_service, customer_service, invoice_service, payment_service, settings_service
 
 
@@ -208,3 +210,30 @@ def test_invoice_creation(db_session):
         invoice_date=date.today(),
     )
     assert detail["invoice"]["grand_total"] == Decimal("1000.00")
+
+
+def test_delete_invoice_removes_items_and_payments(db_session):
+    _seed_business(db_session)
+    customer = _seed_customer(db_session)
+    detail = invoice_service.create_invoice(
+        db_session, None, customer["id"],
+        items=[{"item_name": "Python Bootcamp", "quantity": 1, "rate": "1000", "discount": "0", "tax_percentage": "0"}],
+        invoice_date=date.today(),
+        initial_payment={"amount": "500", "payment_mode": "Cash", "payment_date": date.today()},
+    )
+    invoice_id = detail["invoice"]["id"]
+
+    invoice_service.delete_invoice(db_session, None, invoice_id)
+
+    with pytest.raises(invoice_service.InvoiceError, match="not found"):
+        invoice_service.get_invoice_detail(db_session, invoice_id)
+    assert payment_service.list_payments(db_session, invoice_id) == []
+    remaining_items = db_session.execute(
+        select(InvoiceItem).where(InvoiceItem.invoice_id == invoice_id)
+    ).scalars().all()
+    assert remaining_items == []
+
+
+def test_delete_invoice_unknown_raises(db_session):
+    with pytest.raises(invoice_service.InvoiceError, match="not found"):
+        invoice_service.delete_invoice(db_session, None, 9999)

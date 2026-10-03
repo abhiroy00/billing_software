@@ -67,6 +67,7 @@ class DataTable(ctk.CTkFrame):
         empty_message: str = "No records found",
         empty_action_label: str | None = None,
         on_empty_action: Callable[[], None] | None = None,
+        selectmode: str = "browse",
         **kwargs,
     ):
         defaults = dict(fg_color=theme.colors.card, corner_radius=theme.spacing.radius, border_width=1, border_color=theme.colors.border)
@@ -88,7 +89,7 @@ class DataTable(ctk.CTkFrame):
         style_name = _configure_treeview_style()
         keys = [c[0] for c in columns]
 
-        self.tree = ttk.Treeview(self, columns=keys, show="headings", style=style_name, selectmode="browse")
+        self.tree = ttk.Treeview(self, columns=keys, show="headings", style=style_name, selectmode=selectmode)
         for key, heading, width, anchor in columns:
             self.tree.heading(key, text=heading, command=lambda k=key: self._sort_by(k))
             self.tree.column(key, width=width, anchor=anchor, stretch=True)
@@ -118,13 +119,16 @@ class DataTable(ctk.CTkFrame):
 
     def get_selected(self) -> dict[str, Any] | None:
         """Currently highlighted row (for toolbar Edit/Delete buttons)."""
+        rows = self.get_selected_rows()
+        return rows[0] if rows else None
+
+    def get_selected_rows(self) -> list[dict[str, Any]]:
+        """All highlighted rows (for bulk actions when selectmode allows it)."""
         try:
             selection = self.tree.selection()
         except Exception:
-            return None
-        if not selection:
-            return None
-        return self._iid_to_row.get(selection[0])
+            return []
+        return [self._iid_to_row[iid] for iid in selection if iid in self._iid_to_row]
 
     def _render(self) -> None:
         for item in self.tree.get_children():

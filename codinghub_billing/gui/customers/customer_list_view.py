@@ -60,6 +60,7 @@ class CustomerListView(ctk.CTkFrame):
             empty_message="No customers found",
             empty_action_label="Add Customer",
             on_empty_action=self._open_add_form,
+            selectmode="extended",
         )
         self.table.grid(row=2, column=0, sticky="nsew", padx=theme.spacing.lg, pady=(0, theme.spacing.lg))
 
@@ -192,9 +193,38 @@ class CustomerListView(ctk.CTkFrame):
             self._open_edit_form(row)
 
     def _delete_selected(self) -> None:
-        row = self._selected_or_warn()
-        if row is not None:
-            self._confirm_delete(row)
+        rows = self.table.get_selected_rows()
+        if not rows:
+            show_toast(self.winfo_toplevel(), "Pehle list me se kam se kam ek customer select karo.", variant="error")
+            return
+        if len(rows) == 1:
+            self._confirm_delete(rows[0])
+            return
+        self._confirm_bulk_delete(rows)
+
+    def _confirm_bulk_delete(self, rows: list[dict]) -> None:
+        def do_delete():
+            success, message, deleted = customer_controller.delete_customers([r["id"] for r in rows])
+            root = self.winfo_toplevel()
+            if not success:
+                show_toast(root, message, variant="error")
+                return
+            if message:
+                show_toast(root, message, variant="warning")
+            else:
+                show_toast(root, f"{deleted} customers deleted.", variant="success")
+            self._load()
+
+        ConfirmDialog(
+            self.winfo_toplevel(),
+            title="Delete Customers",
+            message=(
+                f"Are you sure you want to delete {len(rows)} selected customers? "
+                "Customers with existing invoices will be skipped. This cannot be undone."
+            ),
+            on_confirm=do_delete,
+            confirm_label=f"Delete {len(rows)}",
+        )
 
     def _open_detail(self, row: dict) -> None:
         CustomerDetailModal(self, customer_id=row["id"], on_changed=self._load)

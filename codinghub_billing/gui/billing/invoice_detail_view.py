@@ -1,5 +1,5 @@
 """Invoice detail modal (Section 13): items, tax breakdown, payments,
-and actions (Record Payment / Cancel Invoice)."""
+and actions (Cancel / Delete Invoice)."""
 from __future__ import annotations
 
 from typing import Callable
@@ -8,7 +8,7 @@ import customtkinter as ctk
 
 from controllers import document_controller, invoice_controller
 from gui.components.badges import StatusBadge
-from gui.components.buttons import DangerButton, PrimaryButton, SecondaryButton
+from gui.components.buttons import DangerButton, SecondaryButton
 from gui.components.cards import Card
 from gui.components.dialogs import ConfirmDialog, Modal
 from gui.components.table import DataTable
@@ -170,15 +170,13 @@ class InvoiceDetailModal(Modal):
             SecondaryButton(self.actions, text="🧾  Receipt PDF", command=lambda: self._download_receipt_pdf(invoice)).pack(
                 side="right", padx=(theme.spacing.sm, 0)
             )
-        if invoice["status"] != "CANCELLED":
-            if invoice["due_amount"] > 0:
-                PrimaryButton(self.actions, text="Record Payment", command=lambda: self._record_payment(invoice)).pack(
-                    side="right", padx=(theme.spacing.sm, 0)
-                )
-            if invoice["paid_amount"] == 0:
-                DangerButton(self.actions, text="Cancel Invoice", command=lambda: self._confirm_cancel(invoice)).pack(
-                    side="right"
-                )
+        if invoice["status"] != "CANCELLED" and invoice["paid_amount"] == 0:
+            DangerButton(self.actions, text="Cancel Invoice", command=lambda: self._confirm_cancel(invoice)).pack(
+                side="right"
+            )
+        DangerButton(self.actions, text="Delete Invoice", command=lambda: self._confirm_delete(invoice)).pack(
+            side="right", padx=(theme.spacing.sm, 0)
+        )
 
     def _payment_menu(self, row: dict) -> list[tuple[str, object]]:
         return [("Download Receipt PDF", lambda: self._download_receipt_pdf(None, payment_id=row.get("id")))]
@@ -224,24 +222,6 @@ class InvoiceDetailModal(Modal):
         show_toast(root, "Receipt PDF saved. Opening…", variant="success")
         document_controller.open_file(saved)
 
-    def _record_payment(self, invoice: dict) -> None:
-        from gui.billing.payment_form_modal import PaymentFormModal
-
-        def after_recorded(_result):
-            self._reload()
-            if self._on_changed:
-                self._on_changed()
-
-        PaymentFormModal(
-            self.master,
-            invoice_id=invoice["id"],
-            invoice_number=invoice["invoice_number"],
-            grand_total=invoice["grand_total"],
-            paid_amount=invoice["paid_amount"],
-            due_amount=invoice["due_amount"],
-            on_recorded=after_recorded,
-        )
-
     def _confirm_cancel(self, invoice: dict) -> None:
         def do_cancel():
             success, message = invoice_controller.cancel_invoice(invoice["id"])
@@ -260,4 +240,27 @@ class InvoiceDetailModal(Modal):
             message=f"Are you sure you want to cancel invoice {invoice['invoice_number']}? This cannot be undone.",
             on_confirm=do_cancel,
             confirm_label="Cancel Invoice",
+        )
+
+    def _confirm_delete(self, invoice: dict) -> None:
+        def do_delete():
+            success, message = invoice_controller.delete_invoice(invoice["id"])
+            root = self.master.winfo_toplevel()
+            if success:
+                show_toast(root, f"Invoice {invoice['invoice_number']} deleted.", variant="success")
+                if self._on_changed:
+                    self._on_changed()
+                self.destroy()
+            else:
+                show_toast(root, message, variant="error")
+
+        ConfirmDialog(
+            self,
+            title="Delete Invoice",
+            message=(
+                f"Permanently delete invoice {invoice['invoice_number']}? "
+                "Its line items and payments will also be deleted. This cannot be undone."
+            ),
+            on_confirm=do_delete,
+            confirm_label="Delete Invoice",
         )

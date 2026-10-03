@@ -75,3 +75,15 @@ def cancel_invoice(invoice_id: int) -> tuple[bool, str]:
     except Exception:
         logger.exception("Failed to cancel invoice")
         return False, USER_FRIENDLY_MESSAGE
+
+
+def delete_invoice(invoice_id: int) -> tuple[bool, str]:
+    try:
+        with get_session() as session:
+            invoice_service.delete_invoice(session, auth_service.current_session.user_id, invoice_id)
+        return True, ""
+    except invoice_service.InvoiceError as exc:
+        return False, str(exc)
+    except Exception:
+        logger.exception("Failed to delete invoice")
+        return False, USER_FRIENDLY_MESSAGE
